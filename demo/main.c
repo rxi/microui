@@ -42,8 +42,6 @@ static void test_window(mu_Context *ctx) {
       sprintf(buf, "%d, %d", window.rect.x, window.rect.y); mu_label(ctx, buf);
       mu_label(ctx, "Size:");
       sprintf(buf, "%d, %d", window.rect.w, window.rect.h); mu_label(ctx, buf);
-      mu_label(ctx, "Hovered:");
-      mu_label(ctx, ctx->hover_root == &window ? "true" : "false");
     }
 
     /* labels + buttons */
