@@ -115,7 +115,7 @@ while (mu_next_command(ctx, &cmd)) {
 }
 ```
 
-See the [`demo`](demo) directory for a usage example.
+See the [`demo`](../demo) directory for a usage example.
 
 
 ## Layout System
