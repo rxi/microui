@@ -4,7 +4,7 @@
 A tiny, portable, immediate-mode UI library written in ANSI C
 
 ## Features
-* Tiny: around `1100 cloc` of ANSI C
+* Tiny: around `1100 sloc` of ANSI C
 * Works within a fixed-sized memory region: no additional memory is
   allocated
 * Built-in controls: window, panel, button, slider, textbox, label,
