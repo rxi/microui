@@ -8,7 +8,7 @@
 ## Overview
 The overall structure when using the library is as follows:
 ```
-initialize `mu_Context`
+initialise `mu_Context`
 
 main loop:
   call `mu_input_...` functions
@@ -19,7 +19,7 @@ main loop:
 ```
 
 ## Getting Started
-Before use a `mu_Context` should be initialized:
+Before use a `mu_Context` should be initialised:
 ```c
 mu_Context *ctx = malloc(sizeof(mu_Context));
 mu_init(ctx);
@@ -38,8 +38,8 @@ mu_begin(ctx);
 Before any controls can be used we must begin a window using one of the
 `mu_begin_window...` or `mu_begin_popup...` functions. The `mu_Container`
 for the window is expected to be either zeroed memory in which case
-it will be initialized automatically when used, or to have been
-intialized manually using the `mu_init_window()` function; once used,
+it will be initialised automatically when used, or to have been
+initialised manually using the `mu_init_window()` function; once used,
 the `mu_Container`'s memory must remain valid until `mu_end()` is called
 at the end of the frame. The `mu_begin_...` window functions return a
 truthy value if the window is open, if this is not the case we should
@@ -73,7 +73,7 @@ The library generates unique IDs for controls internally to keep track
 of which are focused, hovered, etc. These are generated either from the
 pointer passed to the function (eg. for treenodes, checkboxes, textboxes
 and sliders), or the string/icon passed to the function (eg. buttons). An
-issue arrises then if you have several buttons in a window or panel that
+issue arises then if you have several buttons in a window or panel that
 use the same label. The `mu_push_id()` and `mu_pop_id()` functions are
 provided for such situations, allowing you to push additional data that
 will be mixed into the unique ID:
@@ -95,7 +95,7 @@ mu_end(ctx);
 
 When we're ready to draw the UI the `mu_next_command()` can be used
 to iterate the resultant commands. The function expects a `mu_Command`
-pointer initialized to `NULL`. It is safe to iterate through the commands
+pointer initialised to `NULL`. It is safe to iterate through the commands
 list any number of times:
 ```c
 mu_Command *cmd = NULL;
@@ -119,7 +119,79 @@ See the [`demo`](../demo) directory for a usage example.
 
 
 ## Layout System
-*TODO*
+The layout system is primarily based around *rows* — Each row
+can contain a number of *items* or *columns* each column can itself
+contain a number of rows and so forth. A row is initialised using the
+`mu_layout_row()` function, the user should specify the number of items
+on the row, an array containing the width of each item, and the height
+of the row:
+```c
+/* intialize a row of 3 items: the first item with a width
+** of 90 and the remaining two with the width of 100 */
+mu_layout_row(ctx, 3, (int[]) { 90, 100, 100 }, 0);
+```
+When a row is filled the next row is started, for example, in the above
+code 6 buttons immediately after would result in two rows. The function
+can be called again to begin a new row.
+
+As well as absolute values, width and height can be specified as `0`
+which will result in the Context's `style.size` value being used, or a
+negative value which will size the item relative to the right/bottom edge,
+thus if we wanted a row with a small button at the left, a textbox filling
+most the row and a larger button at the right, we could do the following:
+```c
+mu_layout_row(ctx, 3, (int[]) { 30, -90, -1 }, 0);
+mu_button(ctx, "X");
+mu_textbox(ctx, buf, sizeof(buf));
+mu_button(ctx, "Submit");
+```
+
+If the `items` parameter is `-1`, the `widths` parameter is ignored
+and controls will continue to be added to the row at the width last
+specified by `mu_layout_width()` or `style.size.x` if this function has
+not been called:
+```c
+mu_layout_row(ctx, -1, NULL, 0);
+mu_layout_width(ctx, -90);
+mu_textbox(ctx, buf, sizeof(buf));
+mu_layout_width(ctx, -1);
+mu_button(ctx, "Submit");
+```
+
+A column can be started at any point on a row using the
+`mu_layout_begin_column()` function. Once begun, rows will act inside
+the body of the column — all negative size values will be relative to
+the column's body as opposed to the body of the container. All new rows
+will be contained within this column until the `mu_layout_end_column()`
+function is called.
+
+Internally controls use the `mu_layout_next()` function to retrieve the
+next screen-positioned-Rect and advance the layout system, you should use
+this function when making custom controls or if you want to advance the
+layout system without placing a control.
+
+The `mu_layout_set_next()` function is provided to set the next layout
+Rect explicitly. This will be returned by `mu_layout_next()` when it is
+next called. By using the `relative` boolean you can choose to provide
+a screen-space Rect or a Rect which will have the container's position
+and scroll offset applied to it. You can peek the next Rect from the
+layout system by using the `mu_layout_next()` function to retrieve it,
+followed by `mu_layout_set_next()` to return it:
+```c
+mu_Rect rect = mu_layout_next(ctx);
+mu_layout_set_next(ctx, rect, 0);
+```
+
+If you want to position controls arbitrarily inside a container the
+`relative` argument of `mu_layout_set_next()` should be true:
+```c
+/* place a (40, 40) sized button at (300, 300) inside the container: */
+mu_layout_set_next(ctx, mu_rect(300, 300, 40, 40), 1);
+mu_button(ctx, "X");
+```
+A Rect set with `relative` true will also effect the `content_size`
+of the container, causing it to effect the scrollbars if it exceeds the
+width or height of the container's body.
 
 
 ## Style Customisation
