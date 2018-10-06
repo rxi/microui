@@ -25,6 +25,13 @@ mu_Context *ctx = malloc(sizeof(mu_Context));
 mu_init(ctx);
 ```
 
+For font alignment and clipping to work correctly you should also set the
+context's `text_width` and `text_height` callback functions:
+```c
+ctx->text_width = text_width;
+ctx->text_height = text_height;
+```
+
 In your main loop you should first pass user input to microui using the
 `mu_input_...` functions. It is safe to call the input functions multiple
 times if the same input event occurs in a single frame.
@@ -126,7 +133,7 @@ contain a number of rows and so forth. A row is initialised using the
 on the row, an array containing the width of each item, and the height
 of the row:
 ```c
-/* intialize a row of 3 items: the first item with a width
+/* initialise a row of 3 items: the first item with a width
 ** of 90 and the remaining two with the width of 100 */
 mu_layout_row(ctx, 3, (int[]) { 90, 100, 100 }, 0);
 ```
@@ -195,7 +202,21 @@ width or height of the container's body.
 
 
 ## Style Customisation
-*TODO*
+The library provides styling support via the `mu_Style` struct and, if you
+want greater control over the look, the `draw_frame()` callback function.
+
+The `mu_Style` struct contains spacing and sizing information, as well
+as a `colors` array which maps `colorid` to `mu_Color`. The library uses
+the `style` pointer field of the context to resolve colors and spacing,
+it is safe to change this pointer or modify any fields of the resultant
+struct at any point. See [`microui.h`](../src/microui.h) for the struct's
+implementation.
+
+In addition to the style struct the context stores a `draw_frame()`
+callback function which is used whenever the *frame* of a control needs
+to be drawn, by default this function draws a rectangle using the color
+of the `colorid` argument, with a one-pixel border around it using the
+`MU_COLOR_BORDER` color.
 
 
 ## Custom Controls
