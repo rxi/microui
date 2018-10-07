@@ -220,5 +220,41 @@ of the `colorid` argument, with a one-pixel border around it using the
 
 
 ## Custom Controls
-*TODO*
+The library exposes the functions used by built-in controls to allow the
+user to make custom controls. A control should take a `mu_Context*` value
+as its first argument and return a `MU_RES_...` value. Your control's
+implementation should use `mu_layout_next()` to get its destination
+Rect and advance the layout system. `mu_get_id()` should be used with
+some data unique to the control to generate an ID for that control and
+`mu_update_control()` should be used to update the context's `hover`
+and `focus` values based on the mouse input state.
 
+The `MU_OPT_HOLDFOCUS` opt value can be passed to `mu_update_control()`
+if we want the control to retain focus when the mouse button is released
+— this behaviour is used by textboxes which we want to stay focused
+to allow for text input.
+
+A control that acts as a button which displays an integer and, when
+clicked increments that integer, could be implemented as such:
+```c
+int incrementer(mu_Context *ctx, int *value) {
+  mu_Id     id = mu_get_id(ctx, &value, sizeof(value));
+  mu_Rect rect = mu_layout_next(ctx);
+  mu_update_control(ctx, id, rect, 0);
+
+  /* handle input */
+  int res = 0;
+  if (ctx->mouse_pressed == MU_MOUSE_LEFT && ctx->focus == id) {
+    (*value)++;
+    res |= MU_RES_CHANGE;
+  }
+
+  /* draw */
+  char buf[32];
+  sprintf(buf, "%d", *value);
+  mu_draw_control_frame(ctx, id, rect, MU_COLOR_BUTTON, 0);
+  mu_draw_control_text(ctx, buf, rect, MU_COLOR_TEXT, MU_OPT_ALIGNCENTER);
+
+  return res;
+}
+```
