@@ -70,8 +70,8 @@ static mu_Style default_style = {
     { 30,  30,  30,  255 }, /* MU_COLOR_BASE */
     { 35,  35,  35,  255 }, /* MU_COLOR_BASEHOVER */
     { 40,  40,  40,  255 }, /* MU_COLOR_BASEFOCUS */
-    { 30,  30,  30,  255 }, /* MU_COLOR_SCROLLBASE */
-    { 80,  80,  80,  255 }  /* MU_COLOR_SCROLLTHUMB */
+    { 42,  42,  42,  255 }, /* MU_COLOR_SCROLLBASE */
+    { 30,  30,  30,  255 }  /* MU_COLOR_SCROLLTHUMB */
   }
 };
 
