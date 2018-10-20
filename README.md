@@ -1,5 +1,5 @@
 # microui
-![screenshot](https://user-images.githubusercontent.com/3920290/45842139-b4ca8680-bd13-11e8-81ef-1d78a46faac9.png)
+![screenshot](https://user-images.githubusercontent.com/3920290/47258144-dd6aab00-d48e-11e8-92d1-8846c4087d8e.png)
 
 A tiny, portable, immediate-mode UI library written in ANSI C
 
