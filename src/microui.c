@@ -235,7 +235,7 @@ void mu_set_focus(mu_Context *ctx, mu_Id id) {
 
 
 /* 32bit fnv-1a hash */
-#define MU_HASH_SEED 2166136261
+#define HASH_INITIAL 2166136261
 
 static void hash(mu_Id *hash, const void *data, int size) {
   const unsigned char *p = data;
@@ -247,7 +247,7 @@ static void hash(mu_Id *hash, const void *data, int size) {
 
 mu_Id mu_get_id(mu_Context *ctx, const void *data, int size) {
   int idx = ctx->id_stack.idx;
-  mu_Id res = (idx > 0) ? ctx->id_stack.items[idx - 1] : MU_HASH_SEED;
+  mu_Id res = (idx > 0) ? ctx->id_stack.items[idx - 1] : HASH_INITIAL;
   hash(&res, data, size);
   ctx->last_id = res;
   return res;
