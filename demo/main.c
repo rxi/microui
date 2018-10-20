@@ -206,7 +206,7 @@ static void style_window(mu_Context *ctx) {
   };
 
   if (mu_begin_window(ctx, &window, "Style Editor")) {
-    int sw = mu_get_container(ctx)->body.w * 0.16;
+    int sw = mu_get_container(ctx)->body.w * 0.14;
     mu_layout_row(ctx, 6, (int[]) { 80, sw, sw, sw, sw, -1 }, 0);
     for (int i = 0; colors[i].label; i++) {
       mu_label(ctx, colors[i].label);
