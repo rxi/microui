@@ -59,7 +59,7 @@ static mu_Style default_style = {
   12, 8,      /* scrollbar_size, thumb_size */
   {
     { 230, 230, 230, 255 }, /* MU_COLOR_TEXT */
-    { 20,  20,  20,  200 }, /* MU_COLOR_BORDER */
+    { 25,  25,  25,  255 }, /* MU_COLOR_BORDER */
     { 50,  50,  50,  255 }, /* MU_COLOR_WINDOWBG */
     { 20,  20,  20,  255 }, /* MU_COLOR_TITLEBG */
     { 240, 240, 240, 255 }, /* MU_COLOR_TITLETEXT */
