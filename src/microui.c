@@ -53,10 +53,10 @@ static mu_Rect unclipped_rect = { 0, 0, 0x1000000, 0x1000000 };
 
 static mu_Style default_style = {
   NULL,       /* font */
-  { 70, 12 }, /* size */
-  6, 2, 24,   /* padding, spacing, indent */
+  { 68, 10 }, /* size */
+  6, 4, 24,   /* padding, spacing, indent */
   26, 20,     /* title_height, footer_height */
-  12, 10,     /* scrollbar_size, thumb_size */
+  12, 8,      /* scrollbar_size, thumb_size */
   {
     { 230, 230, 230, 255 }, /* MU_COLOR_TEXT */
     { 20,  20,  20,  200 }, /* MU_COLOR_BORDER */
@@ -97,8 +97,8 @@ mu_Color mu_color(int r, int g, int b, int a) {
 }
 
 
-static mu_Rect shrink_rect(mu_Rect rect, int n) {
-  return mu_rect(rect.x + n, rect.y + n, rect.w - n * 2, rect.h - n * 2);
+static mu_Rect expand_rect(mu_Rect rect, int n) {
+  return mu_rect(rect.x - n, rect.y - n, rect.w + n * 2, rect.h + n * 2);
 }
 
 
@@ -137,9 +137,12 @@ static int text_height(mu_Font font) {
 
 static void draw_frame(mu_Context *ctx, mu_Rect rect, int colorid) {
   mu_draw_rect(ctx, rect, ctx->style->colors[colorid]);
+  if (colorid == MU_COLOR_SCROLLBASE  ||
+      colorid == MU_COLOR_SCROLLTHUMB ||
+      colorid == MU_COLOR_TITLEBG) { return; }
   /* draw border */
   if (ctx->style->colors[MU_COLOR_BORDER].a) {
-    mu_draw_box(ctx, rect, ctx->style->colors[MU_COLOR_BORDER]);
+    mu_draw_box(ctx, expand_rect(rect, 1), ctx->style->colors[MU_COLOR_BORDER]);
   }
 }
 
@@ -307,11 +310,9 @@ static mu_Layout* get_layout(mu_Context *ctx) {
 
 
 static void push_container(mu_Context *ctx, mu_Container *cnt) {
-  /* push container and id */
   push(ctx->container_stack, cnt);
-  mu_push_id(ctx, &cnt, sizeof(void*));
-  /* init */
-  cnt->body = shrink_rect(cnt->rect, ctx->style->padding);
+  mu_push_id(ctx, &cnt, sizeof(mu_Container*));
+  cnt->body = cnt->rect;
 }
 
 
@@ -968,23 +969,21 @@ void mu_end_treenode(mu_Context *ctx) {
 }
 
 
-#define scrollbar(ctx, cnt, b, x, y, w, h)                                  \
+#define scrollbar(ctx, cnt, b, cs, x, y, w, h)                              \
   do {                                                                      \
     /* only add scrollbar if content size is larger than body */            \
-    mu_Vec2 cs = cnt->content_size;                                         \
     int maxscroll = cs.y - b.h;                                             \
                                                                             \
     if (maxscroll > 0 && b.h > 0) {                                         \
       mu_Rect base, thumb;                                                  \
-      mu_Id id;                                                             \
+      mu_Id id = mu_get_id(ctx, "!scrollbar" #y, 11);                       \
                                                                             \
       /* get sizing / positioning */                                        \
       base = b;                                                             \
-      base.x = b.x + b.w + ctx->style->padding;                             \
+      base.x = b.x + b.w;                                                   \
       base.w = ctx->style->scrollbar_size;                                  \
                                                                             \
       /* handle input */                                                    \
-      id = mu_get_id(ctx, "!scrollbar" #y, 11);                             \
       mu_update_control(ctx, id, base, 0);                                  \
       if (ctx->focus == id && ctx->mouse_down == MU_MOUSE_LEFT) {           \
         cnt->scroll.y += ctx->mouse_delta.y * cs.y / base.h;                \
@@ -1009,19 +1008,26 @@ void mu_end_treenode(mu_Context *ctx) {
 
 
 static void scrollbars(mu_Context *ctx, mu_Container *cnt) {
+  int sz = ctx->style->scrollbar_size;
+  mu_Vec2 cs = cnt->content_size;
+  cs.x += ctx->style->padding * 2;
+  cs.y += ctx->style->padding * 2;
+  mu_push_clip_rect(ctx, cnt->body);
   /* resize body to make room for scrollbars */
-  mu_Rect b = cnt->body;
-  int sz = ctx->style->scrollbar_size + ctx->style->padding;
-  if (cnt->content_size.y > mu_max(b.h, cnt->last_body.h)) { b.w -= sz; }
-  if (cnt->content_size.x > mu_max(b.w, cnt->last_body.w)) { b.h -= sz; }
+  if (cs.y > cnt->last_body.h) { cnt->body.w -= sz; }
+  if (cs.x > cnt->last_body.w) { cnt->body.h -= sz; }
   /* to create a horizontal or vertical scrollbar almost-identical code is
   ** used; only the references to `x|y` `w|h` need to be switched */
-  mu_push_clip_rect(ctx, cnt->body);
-  scrollbar(ctx, cnt, b, x, y, w, h);
-  scrollbar(ctx, cnt, b, y, x, h, w);
+  scrollbar(ctx, cnt, cnt->body, cs, x, y, w, h);
+  scrollbar(ctx, cnt, cnt->body, cs, y, x, h, w);
   mu_pop_clip_rect(ctx);
-  /* set new body */
-  cnt->body = b;
+}
+
+
+static void push_container_body(mu_Context *ctx, mu_Container *cnt, int opt) {
+  if (~opt & MU_OPT_NOSCROLL) { scrollbars(ctx, cnt); }
+  mu_push_clip_rect(ctx, cnt->body);
+  push_layout(ctx, expand_rect(cnt->body, -ctx->style->padding), cnt->scroll);
 }
 
 
@@ -1125,13 +1131,13 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
   }
 
   /* do scrollbars and init clipping */
-  if (~opt & MU_OPT_NOSCROLL) { scrollbars(ctx, cnt); }
-  mu_push_clip_rect(ctx, cnt->body);
+  push_container_body(ctx, cnt, opt);
 
   /* resize to content size */
   if (opt & MU_OPT_AUTOSIZE) {
-    cnt->rect.w = cnt->content_size.x + (cnt->rect.w - cnt->body.w);
-    cnt->rect.h = cnt->content_size.y + (cnt->rect.h - cnt->body.h);
+    mu_Rect r = get_layout(ctx)->body;
+    cnt->rect.w = cnt->content_size.x + (cnt->rect.w - r.w);
+    cnt->rect.h = cnt->content_size.y + (cnt->rect.h - r.h);
   }
 
   /* close if this is a popup window and elsewhere was clicked */
@@ -1141,7 +1147,6 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
     cnt->open = 0;
   }
 
-  push_layout(ctx, cnt->body, cnt->scroll);
   return MU_RES_ACTIVE;
 }
 
@@ -1187,9 +1192,7 @@ void mu_begin_panel_ex(mu_Context *ctx, mu_Container *cnt, int opt) {
     ctx->draw_frame(ctx, cnt->rect, MU_COLOR_PANELBG);
   }
   push_container(ctx, cnt);
-  if (~opt & MU_OPT_NOSCROLL) { scrollbars(ctx, cnt); }
-  mu_push_clip_rect(ctx, cnt->body);
-  push_layout(ctx, cnt->body, cnt->scroll);
+  push_container_body(ctx, cnt, opt);
 }
 
 
