@@ -70,7 +70,7 @@ static mu_Style default_style = {
     { 30,  30,  30,  255 }, /* MU_COLOR_BASE */
     { 35,  35,  35,  255 }, /* MU_COLOR_BASEHOVER */
     { 40,  40,  40,  255 }, /* MU_COLOR_BASEFOCUS */
-    { 42,  42,  42,  255 }, /* MU_COLOR_SCROLLBASE */
+    { 40,  40,  40,  255 }, /* MU_COLOR_SCROLLBASE */
     { 30,  30,  30,  255 }  /* MU_COLOR_SCROLLTHUMB */
   }
 };
@@ -1073,14 +1073,14 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
   if (!cnt->open) { return 0; }
 
   begin_root_container(ctx, cnt);
+  rect = cnt->rect;
 
   /* draw frame */
   if (~opt & MU_OPT_NOFRAME) {
-    ctx->draw_frame(ctx, cnt->rect, MU_COLOR_WINDOWBG);
+    ctx->draw_frame(ctx, rect, MU_COLOR_WINDOWBG);
   }
 
   /* do title bar */
-  rect = cnt->rect;
   titlerect = rect;
   titlerect.h = ctx->style->title_height;
   if (~opt & MU_OPT_NOTITLE) {
@@ -1090,7 +1090,7 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
     if (~opt & MU_OPT_NOTITLE) {
       mu_Id id = mu_get_id(ctx, "!title", 6);
       mu_update_control(ctx, id, titlerect, opt);
-      mu_draw_control_text(ctx, title, titlerect, MU_COLOR_TITLETEXT, 0);
+      mu_draw_control_text(ctx, title, titlerect, MU_COLOR_TITLETEXT, opt);
       if (id == ctx->focus && ctx->mouse_down == MU_MOUSE_LEFT) {
         cnt->rect.x += ctx->mouse_delta.x;
         cnt->rect.y += ctx->mouse_delta.y;
