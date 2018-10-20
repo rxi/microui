@@ -295,9 +295,7 @@ static void push_layout(mu_Context *ctx, mu_Rect body, mu_Vec2 scroll) {
   mu_Layout layout;
   int width = 0;
   memset(&layout, 0, sizeof(mu_Layout));
-  layout.body = body;
-  layout.body.x -= scroll.x;
-  layout.body.y -= scroll.y;
+  layout.body = mu_rect(body.x - scroll.x, body.y - scroll.y, body.w, body.h);
   layout.max = mu_vec2(-0x1000000, -0x1000000);
   push(ctx->layout_stack, layout);
   mu_layout_row(ctx, 1, &width, 0);
@@ -1046,7 +1044,7 @@ static void begin_root_container(mu_Context *ctx, mu_Container *cnt) {
   {
     ctx->hover_root = cnt;
   }
-  /* clipping is set directly here in case a root-container is made within
+  /* clipping is reset here in case a root-container is made within
   ** another root-containers's begin/end block; this prevents the inner
   ** root-container being clipped to the outer */
   push(ctx->clip_stack, unclipped_rect);
@@ -1143,9 +1141,7 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
   }
 
   /* close if this is a popup window and elsewhere was clicked */
-  if ((opt & MU_OPT_POPUP) && ctx->mouse_pressed &&
-      ctx->last_hover_root != cnt)
-  {
+  if (opt & MU_OPT_POPUP && ctx->mouse_pressed && ctx->last_hover_root != cnt) {
     cnt->open = 0;
   }
 
