@@ -152,7 +152,6 @@ typedef struct {
 typedef struct {
   mu_Command *head, *tail;
   mu_Rect rect;
-  mu_Rect last_body;
   mu_Rect body;
   mu_Vec2 content_size;
   mu_Vec2 scroll;
