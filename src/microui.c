@@ -102,18 +102,14 @@ static mu_Rect expand_rect(mu_Rect rect, int n) {
 }
 
 
-static mu_Rect clip_rect(mu_Rect rect, mu_Rect clip) {
-  int x1 = rect.x + rect.w;
-  int y1 = rect.y + rect.h;
-  int x2 = clip.x + clip.w;
-  int y2 = clip.y + clip.h;
-  rect.x = mu_max(rect.x, clip.x);
-  rect.y = mu_max(rect.y, clip.y);
-  rect.w = mu_min(x1, x2) - rect.x;
-  rect.h = mu_min(y1, y2) - rect.y;
-  rect.w = mu_max(0, rect.w);
-  rect.h = mu_max(0, rect.h);
-  return rect;
+static mu_Rect clip_rect(mu_Rect r1, mu_Rect r2) {
+  int x1 = mu_max(r1.x, r2.x);
+  int y1 = mu_max(r1.y, r2.y);
+  int x2 = mu_min(r1.x + r1.w, r2.x + r2.w);
+  int y2 = mu_min(r1.y + r1.h, r2.y + r2.h);
+  if (x2 < x1) { x2 = x1; }
+  if (y2 < y1) { y2 = y1; }
+  return mu_rect(x1, y1, x2 - x1, y2 - y1);
 }
 
 
