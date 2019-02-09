@@ -210,6 +210,9 @@ struct mu_Context {
   int key_down;
   int key_pressed;
   char input_text[32];
+  /* resize state */
+  mu_Id resizing_id;
+  mu_Vec2 resize_cursor_pos;
 };
 
 
