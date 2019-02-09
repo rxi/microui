@@ -1117,11 +1117,22 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
     mu_Rect r = mu_rect(rect.x + rect.w - sz, rect.y + rect.h - sz, sz, sz);
     mu_update_control(ctx, id, r, opt);
     mu_draw_icon(ctx, MU_ICON_RESIZE, r, ctx->style->colors[MU_COLOR_TEXT]);
+    static int resizing_id;
     if (id == ctx->focus && ctx->mouse_down == MU_MOUSE_LEFT) {
-      cnt->rect.w += ctx->mouse_delta.x;
-      cnt->rect.h += ctx->mouse_delta.y;
+      static mu_Vec2 cursor_pos;
+      /* if now is the first frame during resizing */
+      if (resizing_id != id) {
+        resizing_id = id;
+        cursor_pos = mu_vec2(ctx->mouse_pos.x - r.x, ctx->mouse_pos.y - r.y);
+      }
+      cnt->rect.w = ctx->mouse_pos.x - rect.x + sz - cursor_pos.x;
+      cnt->rect.h = ctx->mouse_pos.y - rect.y + sz - cursor_pos.y;
       cnt->rect.w = mu_max(96, cnt->rect.w);
       cnt->rect.h = mu_max(64, cnt->rect.h);
+    }
+    /* if `resizing_id` WAS focused but NOW not */
+    else if (resizing_id == id) {
+      resizing_id = -1;
     }
     body.h -= sz;
   }
