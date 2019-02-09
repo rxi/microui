@@ -29,6 +29,10 @@
 #define mu_max(a, b)            ((a) > (b) ? (a) : (b))
 #define mu_clamp(x, a, b)       mu_min(b, mu_max(a, x))
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 enum {
   MU_CLIP_NONE,
   MU_CLIP_PART,
@@ -286,5 +290,9 @@ void mu_end_popup(mu_Context *ctx);
 void mu_begin_panel_ex(mu_Context *ctx, mu_Container *cnt, int opt);
 void mu_begin_panel(mu_Context *ctx, mu_Container *cnt);
 void mu_end_panel(mu_Context *ctx);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
 
 #endif
