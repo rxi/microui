@@ -103,7 +103,7 @@ static void test_window(mu_Context *ctx) {
     /* background color sliders */
     static int show_sliders = 1;
     if (mu_header(ctx, &show_sliders, "Background Color")) {
-      mu_layout_row(ctx, 2, (int[]) { -78, -1 }, 76);
+      mu_layout_row(ctx, 2, (int[]) { -78, -1 }, 74);
       /* sliders */
       mu_layout_begin_column(ctx);
       mu_layout_row(ctx, 2, (int[]) { 46, -1 }, 0);
@@ -114,7 +114,6 @@ static void test_window(mu_Context *ctx) {
       /* color preview */
       mu_Rect r = mu_layout_next(ctx);
       mu_draw_rect(ctx, r, mu_color(bg[0], bg[1], bg[2], 255));
-      mu_draw_box(ctx, r, ctx->style->colors[MU_COLOR_BORDER]);
       char buf[32];
       sprintf(buf, "#%02X%02X%02X", (int) bg[0], (int) bg[1], (int) bg[2]);
       mu_draw_control_text(ctx, buf, r, MU_COLOR_TEXT, MU_OPT_ALIGNCENTER);
