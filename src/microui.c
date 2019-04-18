@@ -55,7 +55,7 @@ static mu_Style default_style = {
   NULL,       /* font */
   { 68, 10 }, /* size */
   6, 4, 24,   /* padding, spacing, indent */
-  26, 20,     /* title_height, footer_height */
+  26,         /* title_height */
   12, 8,      /* scrollbar_size, thumb_size */
   {
     { 230, 230, 230, 255 }, /* MU_COLOR_TEXT */
@@ -1020,7 +1020,6 @@ static void push_container_body(
   mu_Context *ctx, mu_Container *cnt, mu_Rect body, int opt
 ) {
   if (~opt & MU_OPT_NOSCROLL) { scrollbars(ctx, cnt, &body); }
-  mu_push_clip_rect(ctx, body);
   push_layout(ctx, expand_rect(body, -ctx->style->padding), cnt->scroll);
   cnt->body = body;
 }
@@ -1110,24 +1109,19 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
     }
   }
 
-  /* do `resize` notch */
+  push_container_body(ctx, cnt, body, opt);
+
+  /* do `resize` handle */
   if (~opt & MU_OPT_NORESIZE) {
-    int sz = ctx->style->footer_height;
+    int sz = ctx->style->title_height;
     mu_Id id = mu_get_id(ctx, "!resize", 7);
     mu_Rect r = mu_rect(rect.x + rect.w - sz, rect.y + rect.h - sz, sz, sz);
     mu_update_control(ctx, id, r, opt);
-    mu_draw_icon(ctx, MU_ICON_RESIZE, r, ctx->style->colors[MU_COLOR_TEXT]);
     if (id == ctx->focus && ctx->mouse_down == MU_MOUSE_LEFT) {
-      cnt->rect.w += ctx->mouse_delta.x;
-      cnt->rect.h += ctx->mouse_delta.y;
-      cnt->rect.w = mu_max(96, cnt->rect.w);
-      cnt->rect.h = mu_max(64, cnt->rect.h);
+      cnt->rect.w = mu_max(96, cnt->rect.w + ctx->mouse_delta.x);
+      cnt->rect.h = mu_max(64, cnt->rect.h + ctx->mouse_delta.y);
     }
-    body.h -= sz;
   }
-
-  /* do scrollbars and init clipping */
-  push_container_body(ctx, cnt, body, opt);
 
   /* resize to content size */
   if (opt & MU_OPT_AUTOSIZE) {
@@ -1141,6 +1135,7 @@ int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title,
     cnt->open = 0;
   }
 
+  mu_push_clip_rect(ctx, cnt->body);
   return MU_RES_ACTIVE;
 }
 
@@ -1187,6 +1182,7 @@ void mu_begin_panel_ex(mu_Context *ctx, mu_Container *cnt, int opt) {
   }
   push_container(ctx, cnt);
   push_container_body(ctx, cnt, cnt->rect, opt);
+  mu_push_clip_rect(ctx, cnt->body);
 }
 
 

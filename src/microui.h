@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 
-#define MU_VERSION "1.01"
+#define MU_VERSION "1.0"
 
 #define MU_COMMANDLIST_SIZE     (1024 * 256)
 #define MU_ROOTLIST_SIZE        32
@@ -64,7 +64,6 @@ enum {
 
 enum {
   MU_ICON_CLOSE = 1,
-  MU_ICON_RESIZE,
   MU_ICON_CHECK,
   MU_ICON_COLLAPSED,
   MU_ICON_EXPANDED,
@@ -168,7 +167,6 @@ typedef struct {
   int spacing;
   int indent;
   int title_height;
-  int footer_height;
   int scrollbar_size;
   int thumb_size;
   mu_Color colors[MU_COLOR_MAX];

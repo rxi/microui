@@ -894,7 +894,6 @@ static mu_Rect atlas[] = {
   [ MU_ICON_CHECK ] = { 0, 0, 18, 18 },
   [ MU_ICON_EXPANDED ] = { 118, 68, 7, 5 },
   [ MU_ICON_COLLAPSED ] = { 113, 68, 5, 7 },
-  [ MU_ICON_RESIZE ] = { 104, 68, 9, 9 },
   [ ATLAS_WHITE ] = { 125, 68, 3, 3 },
   [ ATLAS_FONT+32 ] = { 84, 68, 2, 17 },
   [ ATLAS_FONT+33 ] = { 39, 68, 3, 17 },
