@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2018 rxi
+** Copyright (c) 2019 rxi
 **
 ** This library is free software; you can redistribute it and/or modify it
 ** under the terms of the MIT license. See `microui.c` for details.
