@@ -203,7 +203,7 @@ struct mu_Context {
   mu_Vec2 mouse_pos;
   mu_Vec2 last_mouse_pos;
   mu_Vec2 mouse_delta;
-  int mouse_wheel;
+  mu_Vec2 scroll_delta;
   int mouse_down;
   int mouse_pressed;
   int key_down;
@@ -234,7 +234,7 @@ void mu_bring_to_front(mu_Context *ctx, mu_Container *cnt);
 void mu_input_mousemove(mu_Context *ctx, int x, int y);
 void mu_input_mousedown(mu_Context *ctx, int x, int y, int btn);
 void mu_input_mouseup(mu_Context *ctx, int x, int y, int btn);
-void mu_input_mousewheel(mu_Context *ctx, int y);
+void mu_input_scroll(mu_Context *ctx, int x, int y);
 void mu_input_keydown(mu_Context *ctx, int key);
 void mu_input_keyup(mu_Context *ctx, int key);
 void mu_input_text(mu_Context *ctx, const char *text);

@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
       switch (e.type) {
         case SDL_QUIT: exit(EXIT_SUCCESS); break;
         case SDL_MOUSEMOTION: mu_input_mousemove(ctx, e.motion.x, e.motion.y); break;
-        case SDL_MOUSEWHEEL: mu_input_mousewheel(ctx, e.wheel.y); break;
+        case SDL_MOUSEWHEEL: mu_input_scroll(ctx, 0, e.wheel.y * -30); break;
         case SDL_TEXTINPUT: mu_input_text(ctx, e.text.text); break;
 
         case SDL_MOUSEBUTTONDOWN:

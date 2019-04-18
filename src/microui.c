@@ -177,9 +177,10 @@ void mu_end(mu_Context *ctx) {
   expect(ctx->id_stack.idx        == 0);
   expect(ctx->layout_stack.idx    == 0);
 
-  /* handle mouse wheel scrolling */
-  if (ctx->scroll_target && ctx->mouse_wheel) {
-    ctx->scroll_target->scroll.y -= ctx->mouse_wheel * 30;
+  /* handle scroll input */
+  if (ctx->scroll_target) {
+    ctx->scroll_target->scroll.x += ctx->scroll_delta.x;
+    ctx->scroll_target->scroll.y += ctx->scroll_delta.y;
   }
 
   /* unset focus if focus id was not touched this frame */
@@ -197,7 +198,7 @@ void mu_end(mu_Context *ctx) {
   ctx->key_pressed = 0;
   ctx->text_input[0] = '\0';
   ctx->mouse_pressed = 0;
-  ctx->mouse_wheel = 0;
+  ctx->scroll_delta = mu_vec2(0, 0);
   ctx->last_mouse_pos = ctx->mouse_pos;
 
   /* sort root containers by zindex */
@@ -363,8 +364,9 @@ void mu_input_mouseup(mu_Context *ctx, int x, int y, int btn) {
 }
 
 
-void mu_input_mousewheel(mu_Context *ctx, int y) {
-  ctx->mouse_wheel += y;
+void mu_input_scroll(mu_Context *ctx, int x, int y) {
+  ctx->scroll_delta.x += x;
+  ctx->scroll_delta.y += y;
 }
 
 
