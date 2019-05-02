@@ -554,7 +554,7 @@ mu_Rect mu_layout_next(mu_Context *ctx) {
     int type = layout->next_type;
     layout->next_type = 0;
     res = layout->next;
-    if (type == ABSOLUTE) { return res; }
+    if (type == ABSOLUTE) { return (ctx->last_rect = res); }
 
   } else {
     /* handle next row */
