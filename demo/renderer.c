@@ -131,7 +131,9 @@ void r_draw_rect(mu_Rect rect, mu_Color color) {
 void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
   mu_Rect dst = { pos.x, pos.y, 0, 0 };
   for (const char *p = text; *p; p++) {
-    mu_Rect src = atlas[ATLAS_FONT + (unsigned char) *p];
+    if ((*p & 0xc0) == 0x80) { continue; }
+    int chr = mu_min((unsigned char) *p, 127);
+    mu_Rect src = atlas[ATLAS_FONT + chr];
     dst.w = src.w;
     dst.h = src.h;
     push_quad(dst, src, color);
@@ -151,7 +153,9 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
 int r_get_text_width(const char *text, int len) {
   int res = 0;
   for (const char *p = text; *p && len--; p++) {
-    res += atlas[ATLAS_FONT + (unsigned char) *p].w;
+    if ((*p & 0xc0) == 0x80) { continue; }
+    int chr = mu_min((unsigned char) *p, 127);
+    res += atlas[ATLAS_FONT + chr].w;
   }
   return res;
 }
