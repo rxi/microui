@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 
-#define MU_VERSION "1.0"
+#define MU_VERSION "1.02"
 
 #define MU_COMMANDLIST_SIZE     (1024 * 256)
 #define MU_ROOTLIST_SIZE        32
