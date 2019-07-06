@@ -18,6 +18,7 @@ static void write_log(const char *text) {
 
 static void test_window(mu_Context *ctx) {
   static mu_Container window;
+  static mu_Container popup;
 
   /* init window manually so we can set its position and size */
   if (!window.inited) {
@@ -100,6 +101,19 @@ static void test_window(mu_Context *ctx) {
       mu_layout_end_column(ctx);
     }
 
+    /* popups */
+    static int show_popups = 0;
+    if (mu_header(ctx, &show_popups, "Popups")) {
+      mu_layout_row(ctx, 2, (int[]) { 86, -1 }, 0);
+      mu_label(ctx, "Position");
+      mu_layout_begin_column(ctx);
+      mu_layout_row(ctx, 3, (int[]) { 60, 60, -1 }, 0);
+      if (mu_button(ctx, "Mouse")) { mu_open_popup(ctx, &popup); }
+      if (mu_button(ctx, "Fixed")) { mu_open_popup_ex(ctx, &popup, mu_vec2(10, 10)); }
+      if (mu_button(ctx, "Right")) { mu_open_popup_ex(ctx, &popup, mu_vec2(ctx->last_rect.x + ctx->last_rect.w, ctx->last_rect.y)); }
+      mu_layout_end_column(ctx);
+    }
+
     /* background color sliders */
     static int show_sliders = 1;
     if (mu_header(ctx, &show_sliders, "Background Color")) {
@@ -120,6 +134,13 @@ static void test_window(mu_Context *ctx) {
     }
 
     mu_end_window(ctx);
+  }
+
+  if (mu_begin_popup(ctx, &popup)) {
+    mu_layout_row(ctx, 1, (int[]) { 150 }, 0);
+    mu_label(ctx, "I am popup");
+    if (mu_button(ctx, "Close")) { popup.open = 0; }
+    mu_end_popup(ctx);
   }
 }
 

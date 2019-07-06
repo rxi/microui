@@ -278,6 +278,7 @@ void mu_end_treenode(mu_Context *ctx);
 int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title, int opt);
 int mu_begin_window(mu_Context *ctx, mu_Container *cnt, const char *title);
 void mu_end_window(mu_Context *ctx);
+void mu_open_popup_ex(mu_Context *ctx, mu_Container *cnt, mu_Vec2 pos);
 void mu_open_popup(mu_Context *ctx, mu_Container *cnt);
 int mu_begin_popup(mu_Context *ctx, mu_Container *cnt);
 void mu_end_popup(mu_Context *ctx);

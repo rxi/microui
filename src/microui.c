@@ -1153,15 +1153,20 @@ void mu_end_window(mu_Context *ctx) {
 }
 
 
-void mu_open_popup(mu_Context *ctx, mu_Container *cnt) {
+void mu_open_popup_ex(mu_Context *ctx, mu_Container *cnt, mu_Vec2 pos) {
   /* set as hover root so popup isn't closed in begin_window_ex()  */
   ctx->last_hover_root = ctx->hover_root = cnt;
   /* init container if not inited */
   if (!cnt->inited) { mu_init_window(ctx, cnt, 0); }
-  /* position at mouse cursor, open and bring-to-front */
-  cnt->rect = mu_rect(ctx->mouse_pos.x, ctx->mouse_pos.y, 0, 0);
+  /* set position, open and bring-to-front */
+  cnt->rect = mu_rect(pos.x, pos.y, 0, 0);
   cnt->open = 1;
   mu_bring_to_front(ctx, cnt);
+}
+
+
+void mu_open_popup(mu_Context *ctx, mu_Container *cnt) {
+  mu_open_popup_ex(ctx, cnt, ctx->mouse_pos);
 }
 
 
