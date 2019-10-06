@@ -908,7 +908,7 @@ int mu_number_ex(mu_Context *ctx, mu_Real *value, mu_Real step,
 
 
 int mu_number(mu_Context *ctx, mu_Real *value, mu_Real step) {
-  return mu_number_ex(ctx, value, step, "%.03f", MU_OPT_ALIGNCENTER);
+  return mu_number_ex(ctx, value, step, MU_SLIDER_FMT, MU_OPT_ALIGNCENTER);
 }
 
 

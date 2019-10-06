@@ -21,7 +21,7 @@
 #define MU_MAX_WIDTHS           16
 #define MU_REAL                 float
 #define MU_REAL_FMT             "%.3g"
-#define MU_SLIDER_FMT           "%.02f"
+#define MU_SLIDER_FMT           "%.2f"
 #define MU_MAX_FMT              127
 
 #define mu_stack(T, n)          struct { int idx; T items[n]; }
