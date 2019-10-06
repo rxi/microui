@@ -988,7 +988,7 @@ void mu_end_treenode(mu_Context *ctx) {
       /* draw base and thumb */                                             \
       ctx->draw_frame(ctx, base, MU_COLOR_SCROLLBASE);                      \
       thumb = base;                                                         \
-      thumb.h = mu_max(16, base.h * b->h / cs.y);                           \
+      thumb.h = mu_max(ctx->style->thumb_size, base.h * b->h / cs.y);       \
       thumb.y += cnt->scroll.y * (base.h - thumb.h) / maxscroll;            \
       ctx->draw_frame(ctx, thumb, MU_COLOR_SCROLLTHUMB);                    \
                                                                             \
