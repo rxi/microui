@@ -61,7 +61,7 @@ static mu_Style default_style = {
     { 230, 230, 230, 255 }, /* MU_COLOR_TEXT */
     { 25,  25,  25,  255 }, /* MU_COLOR_BORDER */
     { 50,  50,  50,  255 }, /* MU_COLOR_WINDOWBG */
-    { 20,  20,  20,  255 }, /* MU_COLOR_TITLEBG */
+    { 25,  25,  25,  255 }, /* MU_COLOR_TITLEBG */
     { 240, 240, 240, 255 }, /* MU_COLOR_TITLETEXT */
     { 0,   0,   0,   0   }, /* MU_COLOR_PANELBG */
     { 75,  75,  75,  255 }, /* MU_COLOR_BUTTON */
