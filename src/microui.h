@@ -88,7 +88,9 @@ enum {
   MU_OPT_HOLDFOCUS    = (1 << 8),
   MU_OPT_AUTOSIZE     = (1 << 9),
   MU_OPT_POPUP        = (1 << 10),
-  MU_OPT_CLOSED       = (1 << 11)
+  MU_OPT_CLOSED       = (1 << 11),
+  MU_OPT_ALIGNTOP     = (1 << 12),
+  MU_OPT_ALIGNBOTTOM  = (1 << 13)
 };
 
 enum {
