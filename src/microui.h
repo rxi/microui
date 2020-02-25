@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2019 rxi
+** Copyright (c) 2020 rxi
 **
 ** This library is free software; you can redistribute it and/or modify it
 ** under the terms of the MIT license. See `microui.c` for details.
@@ -10,14 +10,16 @@
 
 #include <stdlib.h>
 
-#define MU_VERSION "1.02"
+#define MU_VERSION "2.00"
 
-#define MU_COMMANDLIST_SIZE     (1024 * 256)
+#define MU_COMMANDLIST_SIZE     (256 * 1024)
 #define MU_ROOTLIST_SIZE        32
 #define MU_CONTAINERSTACK_SIZE  32
 #define MU_CLIPSTACK_SIZE       32
 #define MU_IDSTACK_SIZE         32
 #define MU_LAYOUTSTACK_SIZE     16
+#define MU_CONTAINERPOOL_SIZE   48
+#define MU_TREENODEPOOL_SIZE    48
 #define MU_MAX_WIDTHS           16
 #define MU_REAL                 float
 #define MU_REAL_FMT             "%.3g"
@@ -30,8 +32,7 @@
 #define mu_clamp(x, a, b)       mu_min(b, mu_max(a, x))
 
 enum {
-  MU_CLIP_NONE,
-  MU_CLIP_PART,
+  MU_CLIP_PART = 1,
   MU_CLIP_ALL
 };
 
@@ -88,7 +89,8 @@ enum {
   MU_OPT_HOLDFOCUS    = (1 << 8),
   MU_OPT_AUTOSIZE     = (1 << 9),
   MU_OPT_POPUP        = (1 << 10),
-  MU_OPT_CLOSED       = (1 << 11)
+  MU_OPT_CLOSED       = (1 << 11),
+  MU_OPT_EXPANDED     = (1 << 12)
 };
 
 enum {
@@ -114,6 +116,7 @@ typedef void* mu_Font;
 typedef struct { int x, y; } mu_Vec2;
 typedef struct { int x, y, w, h; } mu_Rect;
 typedef struct { unsigned char r, g, b, a; } mu_Color;
+typedef struct { mu_Id id; int last_used; } mu_PoolItem;
 
 typedef struct { int type, size; } mu_BaseCommand;
 typedef struct { mu_BaseCommand base; void *dst; } mu_JumpCommand;
@@ -132,7 +135,6 @@ typedef union {
   mu_IconCommand icon;
 } mu_Command;
 
-
 typedef struct {
   mu_Rect body;
   mu_Rect next;
@@ -141,12 +143,11 @@ typedef struct {
   mu_Vec2 max;
   int widths[MU_MAX_WIDTHS];
   int items;
-  int row_index;
+  int item_index;
   int next_row;
   int next_type;
   int indent;
 } mu_Layout;
-
 
 typedef struct {
   mu_Command *head, *tail;
@@ -154,11 +155,9 @@ typedef struct {
   mu_Rect body;
   mu_Vec2 content_size;
   mu_Vec2 scroll;
-  int inited;
   int zindex;
   int open;
 } mu_Container;
-
 
 typedef struct {
   mu_Font font;
@@ -171,7 +170,6 @@ typedef struct {
   int thumb_size;
   mu_Color colors[MU_COLOR_MAX];
 } mu_Style;
-
 
 struct mu_Context {
   /* callbacks */
@@ -187,11 +185,12 @@ struct mu_Context {
   mu_Rect last_rect;
   int last_zindex;
   int updated_focus;
+  int frame;
   mu_Container *hover_root;
-  mu_Container *last_hover_root;
+  mu_Container *next_hover_root;
   mu_Container *scroll_target;
-  char number_buf[MU_MAX_FMT];
-  mu_Id number_editing;
+  char number_edit_buf[MU_MAX_FMT];
+  mu_Id number_edit;
   /* stacks */
   mu_stack(char, MU_COMMANDLIST_SIZE) command_list;
   mu_stack(mu_Container*, MU_ROOTLIST_SIZE) root_list;
@@ -199,6 +198,10 @@ struct mu_Context {
   mu_stack(mu_Rect, MU_CLIPSTACK_SIZE) clip_stack;
   mu_stack(mu_Id, MU_IDSTACK_SIZE) id_stack;
   mu_stack(mu_Layout, MU_LAYOUTSTACK_SIZE) layout_stack;
+  /* retained state pools */
+  mu_PoolItem container_pool[MU_CONTAINERPOOL_SIZE];
+  mu_Container containers[MU_CONTAINERPOOL_SIZE];
+  mu_PoolItem treenode_pool[MU_TREENODEPOOL_SIZE];
   /* input state */
   mu_Vec2 mouse_pos;
   mu_Vec2 last_mouse_pos;
@@ -208,7 +211,7 @@ struct mu_Context {
   int mouse_pressed;
   int key_down;
   int key_pressed;
-  char text_input[32];
+  char input_text[32];
 };
 
 
@@ -227,9 +230,13 @@ void mu_push_clip_rect(mu_Context *ctx, mu_Rect rect);
 void mu_pop_clip_rect(mu_Context *ctx);
 mu_Rect mu_get_clip_rect(mu_Context *ctx);
 int mu_check_clip(mu_Context *ctx, mu_Rect r);
-mu_Container* mu_get_container(mu_Context *ctx);
-void mu_init_window(mu_Context *ctx, mu_Container *cnt, int opt);
+mu_Container* mu_get_current_container(mu_Context *ctx);
+mu_Container* mu_get_container(mu_Context *ctx, const char *name);
 void mu_bring_to_front(mu_Context *ctx, mu_Container *cnt);
+
+int mu_pool_init(mu_Context *ctx, mu_PoolItem *items, int len, mu_Id id);
+int mu_pool_get(mu_Context *ctx, mu_PoolItem *items, int len, mu_Id id);
+void mu_pool_update(mu_Context *ctx, mu_PoolItem *items, int idx);
 
 void mu_input_mousemove(mu_Context *ctx, int x, int y);
 void mu_input_mousedown(mu_Context *ctx, int x, int y, int btn);
@@ -260,29 +267,32 @@ void mu_draw_control_text(mu_Context *ctx, const char *str, mu_Rect rect, int co
 int mu_mouse_over(mu_Context *ctx, mu_Rect rect);
 void mu_update_control(mu_Context *ctx, mu_Id id, mu_Rect rect, int opt);
 
+#define mu_button(ctx, label)             mu_button_ex(ctx, label, 0, MU_OPT_ALIGNCENTER)
+#define mu_textbox(ctx, buf, bufsz)       mu_textbox_ex(ctx, buf, bufsz, 0)
+#define mu_slider(ctx, value, lo, hi)     mu_slider_ex(ctx, value, lo, hi, 0, MU_SLIDER_FMT, MU_OPT_ALIGNCENTER)
+#define mu_number(ctx, value, step)       mu_number_ex(ctx, value, step, MU_SLIDER_FMT, MU_OPT_ALIGNCENTER)
+#define mu_header(ctx, label)             mu_header_ex(ctx, label, 0)
+#define mu_begin_treenode(ctx, label)     mu_begin_treenode_ex(ctx, label, 0)
+#define mu_begin_window(ctx, title, rect) mu_begin_window_ex(ctx, title, rect, 0)
+#define mu_begin_panel(ctx, name)         mu_begin_panel_ex(ctx, name, 0)
+
 void mu_text(mu_Context *ctx, const char *text);
 void mu_label(mu_Context *ctx, const char *text);
 int mu_button_ex(mu_Context *ctx, const char *label, int icon, int opt);
-int mu_button(mu_Context *ctx, const char *label);
-int mu_checkbox(mu_Context *ctx, int *state, const char *label);
+int mu_checkbox(mu_Context *ctx, const char *label, int *state);
 int mu_textbox_raw(mu_Context *ctx, char *buf, int bufsz, mu_Id id, mu_Rect r, int opt);
 int mu_textbox_ex(mu_Context *ctx, char *buf, int bufsz, int opt);
-int mu_textbox(mu_Context *ctx, char *buf, int bufsz);
 int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high, mu_Real step, const char *fmt, int opt);
-int mu_slider(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high);
 int mu_number_ex(mu_Context *ctx, mu_Real *value, mu_Real step, const char *fmt, int opt);
-int mu_number(mu_Context *ctx, mu_Real *value, mu_Real step);
-int mu_header(mu_Context *ctx, int *state, const char *label);
-int mu_begin_treenode(mu_Context *ctx, int *state, const char *label);
+int mu_header_ex(mu_Context *ctx, const char *label, int opt);
+int mu_begin_treenode_ex(mu_Context *ctx, const char *label, int opt);
 void mu_end_treenode(mu_Context *ctx);
-int mu_begin_window_ex(mu_Context *ctx, mu_Container *cnt, const char *title, int opt);
-int mu_begin_window(mu_Context *ctx, mu_Container *cnt, const char *title);
+int mu_begin_window_ex(mu_Context *ctx, const char *title, mu_Rect rect, int opt);
 void mu_end_window(mu_Context *ctx);
-void mu_open_popup(mu_Context *ctx, mu_Container *cnt);
-int mu_begin_popup(mu_Context *ctx, mu_Container *cnt);
+void mu_open_popup(mu_Context *ctx, const char *name);
+int mu_begin_popup(mu_Context *ctx, const char *name);
 void mu_end_popup(mu_Context *ctx);
-void mu_begin_panel_ex(mu_Context *ctx, mu_Container *cnt, int opt);
-void mu_begin_panel(mu_Context *ctx, mu_Container *cnt);
+void mu_begin_panel_ex(mu_Context *ctx, const char *name, int opt);
 void mu_end_panel(mu_Context *ctx);
 
 #endif

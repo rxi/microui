@@ -25,16 +25,16 @@ mu_Context *ctx = malloc(sizeof(mu_Context));
 mu_init(ctx);
 ```
 
-For font alignment and clipping to work correctly you should also set the
-context's `text_width` and `text_height` callback functions:
+Following which the context's `text_width` and `text_height` callback functions
+should be set:
 ```c
 ctx->text_width = text_width;
 ctx->text_height = text_height;
 ```
 
 In your main loop you should first pass user input to microui using the
-`mu_input_...` functions. It is safe to call the input functions multiple
-times if the same input event occurs in a single frame.
+`mu_input_...` functions. It is safe to call the input functions multiple times
+if the same input event occurs in a single frame.
 
 After handling the input the `mu_begin()` function must be called before
 processing your UI:
@@ -43,47 +43,39 @@ mu_begin(ctx);
 ```
 
 Before any controls can be used we must begin a window using one of the
-`mu_begin_window...` or `mu_begin_popup...` functions. The `mu_Container`
-for the window is expected to be either zeroed memory in which case
-it will be initialised automatically when used, or to have been
-initialised manually using the `mu_init_window()` function; once used,
-the `mu_Container`'s memory must remain valid until `mu_end()` is called
-at the end of the frame. The `mu_begin_...` window functions return a
-truthy value if the window is open, if this is not the case we should
-not process the window any further. When we are finished processing the
-window's ui the `mu_end_...` window function should be called.
+`mu_begin_window...` or `mu_begin_popup...` functions. The `mu_begin_...` window
+functions return a truthy value if the window is open, if this is not the case
+we should not process the window any further. When we are finished processing
+the window's ui the `mu_end_...` window function should be called.
 
 ```c
-static mu_Container window;
-
-if (mu_begin_window(ctx, &window, "My Window")) {
+if (mu_begin_window(ctx, "My Window", mu_rect(10, 10, 300, 400))) {
   /* process ui here... */
   mu_end_window(ctx);
 }
 ```
 
-It is safe to nest `mu_begin_window()` calls, this can be useful for
-things like context menus; the windows will still render separate from
-one another like normal.
+It is safe to nest `mu_begin_window()` calls, this can be useful for things like
+context menus; the windows will still render separate from one another like
+normal.
 
-While inside a window block we can safely process controls. Controls
-that allow user interaction return a bitset of `MU_RES_...` values. Some
-controls — such as buttons — can only potentially return a single
-`MU_RES_...`, thus their return value can be treated as a boolean:
+While inside a window block we can safely process controls. Controls that allow
+user interaction return a bitset of `MU_RES_...` values. Some controls — such
+as buttons — can only potentially return a single `MU_RES_...`, thus their
+return value can be treated as a boolean:
 ```c
 if (mu_button(ctx, "My Button")) {
   printf("'My Button' was pressed\n");
 }
 ```
 
-The library generates unique IDs for controls internally to keep track
-of which are focused, hovered, etc. These are generated either from the
-pointer passed to the function (eg. for treenodes, checkboxes, textboxes
-and sliders), or the string/icon passed to the function (eg. buttons). An
-issue arises then if you have several buttons in a window or panel that
-use the same label. The `mu_push_id()` and `mu_pop_id()` functions are
-provided for such situations, allowing you to push additional data that
-will be mixed into the unique ID:
+The library generates unique IDs for controls internally to keep track of which
+are focused, hovered, etc. These are typically generated from the name/label
+passed to the function, or, in the case of sliders and checkboxes the value
+pointer. An issue arises then if you have several buttons in a window or panel
+that use the same label. The `mu_push_id()` and `mu_pop_id()` functions are
+provided for such situations, allowing you to push additional data that will be
+mixed into the unique ID:
 ```c
 for (int i = 0; i < 10; i++) {
   mu_push_id(ctx, &i, sizeof(i));
@@ -94,16 +86,15 @@ for (int i = 0; i < 10; i++) {
 }
 ```
 
-When we're finished processing the UI for this frame the `mu_end()`
-function should be called:
+When we're finished processing the UI for this frame the `mu_end()` function
+should be called:
 ```c
 mu_end(ctx);
 ```
 
-When we're ready to draw the UI the `mu_next_command()` can be used
-to iterate the resultant commands. The function expects a `mu_Command`
-pointer initialised to `NULL`. It is safe to iterate through the commands
-list any number of times:
+When we're ready to draw the UI the `mu_next_command()` can be used to iterate
+the resultant commands. The function expects a `mu_Command` pointer initialised
+to `NULL`. It is safe to iterate through the commands list any number of times:
 ```c
 mu_Command *cmd = NULL;
 while (mu_next_command(ctx, &cmd)) {
@@ -153,12 +144,12 @@ mu_textbox(ctx, buf, sizeof(buf));
 mu_button(ctx, "Submit");
 ```
 
-If the `items` parameter is `-1`, the `widths` parameter is ignored
+If the `items` parameter is `0`, the `widths` parameter is ignored
 and controls will continue to be added to the row at the width last
 specified by `mu_layout_width()` or `style.size.x` if this function has
 not been called:
 ```c
-mu_layout_row(ctx, -1, NULL, 0);
+mu_layout_row(ctx, 0, NULL, 0);
 mu_layout_width(ctx, -90);
 mu_textbox(ctx, buf, sizeof(buf));
 mu_layout_width(ctx, -1);
