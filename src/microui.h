@@ -8,8 +8,6 @@
 #ifndef MICROUI_H
 #define MICROUI_H
 
-#include <stdlib.h>
-
 #define MU_VERSION "2.00"
 
 #define MU_COMMANDLIST_SIZE     (256 * 1024)
