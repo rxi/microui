@@ -346,8 +346,8 @@ void mu_bring_to_front(mu_Context *ctx, mu_Container *cnt) {
 int mu_pool_init(mu_Context *ctx, mu_PoolItem *items, int len, mu_Id id) {
   int i, n = -1, f = ctx->frame;
   for (i = 0; i < len; i++) {
-    if (items[i].last_used < f) {
-      f = items[i].last_used;
+    if (items[i].last_update < f) {
+      f = items[i].last_update;
       n = i;
     }
   }
@@ -369,7 +369,7 @@ int mu_pool_get(mu_Context *ctx, mu_PoolItem *items, int len, mu_Id id) {
 
 
 void mu_pool_update(mu_Context *ctx, mu_PoolItem *items, int idx) {
-  items[idx].last_used = ctx->frame;
+  items[idx].last_update = ctx->frame;
 }
 
 

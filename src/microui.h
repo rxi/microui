@@ -114,7 +114,7 @@ typedef void* mu_Font;
 typedef struct { int x, y; } mu_Vec2;
 typedef struct { int x, y, w, h; } mu_Rect;
 typedef struct { unsigned char r, g, b, a; } mu_Color;
-typedef struct { mu_Id id; int last_used; } mu_PoolItem;
+typedef struct { mu_Id id; int last_update; } mu_PoolItem;
 
 typedef struct { int type, size; } mu_BaseCommand;
 typedef struct { mu_BaseCommand base; void *dst; } mu_JumpCommand;
