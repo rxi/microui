@@ -1,0 +1,4 @@
+*.o
+
+demo_sdl2_opengl2/demo_sdl2_opengl2
+demo_glfw3_opengl2/demo_glfw3_opengl2

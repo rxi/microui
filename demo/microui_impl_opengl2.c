@@ -1,51 +1,21 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#include <string.h>
 #include <assert.h>
-#include "renderer.h"
-#include "atlas.inl"
+#include "microui.h"
+#include "microui_impl_opengl2.h"
+#include "GL/gl.h"
+#include "atlas.h"
 
 #define BUFFER_SIZE 16384
 
+static GLuint  atlas_texture_id;
 static GLfloat   tex_buf[BUFFER_SIZE *  8];
 static GLfloat  vert_buf[BUFFER_SIZE *  8];
 static GLubyte color_buf[BUFFER_SIZE * 16];
 static GLuint  index_buf[BUFFER_SIZE *  6];
 
-static int width  = 800;
-static int height = 600;
+static int width;
+static int height;
 static int buf_idx;
-
-static SDL_Window *window;
-
-
-void r_init(void) {
-  /* init SDL window */
-  window = SDL_CreateWindow(
-    NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-    width, height, SDL_WINDOW_OPENGL);
-  SDL_GL_CreateContext(window);
-
-  /* init gl */
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_CULL_FACE);
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_SCISSOR_TEST);
-  glEnable(GL_TEXTURE_2D);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  glEnableClientState(GL_COLOR_ARRAY);
-
-  /* init texture */
-  GLuint id;
-  glGenTextures(1, &id);
-  glBindTexture(GL_TEXTURE_2D, id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, ATLAS_WIDTH, ATLAS_HEIGHT, 0,
-    GL_ALPHA, GL_UNSIGNED_BYTE, atlas_texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  assert(glGetError() == 0);
-}
 
 
 static void flush(void) {
@@ -60,6 +30,7 @@ static void flush(void) {
   glPushMatrix();
   glLoadIdentity();
 
+  glBindTexture(GL_TEXTURE_2D, atlas_texture_id);
   glTexCoordPointer(2, GL_FLOAT, 0, tex_buf);
   glVertexPointer(2, GL_FLOAT, 0, vert_buf);
   glColorPointer(4, GL_UNSIGNED_BYTE, 0, color_buf);
@@ -123,12 +94,12 @@ static void push_quad(mu_Rect dst, mu_Rect src, mu_Color color) {
 }
 
 
-void r_draw_rect(mu_Rect rect, mu_Color color) {
+static void draw_rect(mu_Rect rect, mu_Color color) {
   push_quad(rect, atlas[ATLAS_WHITE], color);
 }
 
 
-void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
+static void draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
   mu_Rect dst = { pos.x, pos.y, 0, 0 };
   for (const char *p = text; *p; p++) {
     if ((*p & 0xc0) == 0x80) { continue; }
@@ -142,7 +113,7 @@ void r_draw_text(const char *text, mu_Vec2 pos, mu_Color color) {
 }
 
 
-void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
+static void draw_icon(int id, mu_Rect rect, mu_Color color) {
   mu_Rect src = atlas[id];
   int x = rect.x + (rect.w - src.w) / 2;
   int y = rect.y + (rect.h - src.h) / 2;
@@ -150,36 +121,54 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
 }
 
 
-int r_get_text_width(const char *text, int len) {
-  int res = 0;
-  for (const char *p = text; *p && len--; p++) {
-    if ((*p & 0xc0) == 0x80) { continue; }
-    int chr = mu_min((unsigned char) *p, 127);
-    res += atlas[ATLAS_FONT + chr].w;
-  }
-  return res;
-}
-
-
-int r_get_text_height(void) {
-  return 18;
-}
-
-
-void r_set_clip_rect(mu_Rect rect) {
+static void set_clip_rect(mu_Rect rect) {
   flush();
   glScissor(rect.x, height - (rect.y + rect.h), rect.w, rect.h);
 }
 
 
-void r_clear(mu_Color clr) {
-  flush();
-  glClearColor(clr.r / 255., clr.g / 255., clr.b / 255., clr.a / 255.);
-  glClear(GL_COLOR_BUFFER_BIT);
+void microui_opengl2_init() {
+  /* init gl */
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_SCISSOR_TEST);
+  glEnable(GL_TEXTURE_2D);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glEnableClientState(GL_COLOR_ARRAY);
+
+  /* init texture */
+  glGenTextures(1, &atlas_texture_id);
+  glBindTexture(GL_TEXTURE_2D, atlas_texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, ATLAS_WIDTH, ATLAS_HEIGHT, 0,
+    GL_ALPHA, GL_UNSIGNED_BYTE, atlas_texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  assert(glGetError() == 0);
 }
 
+void microui_opengl2_shutdown() {
+  if (atlas_texture_id) {
+    glDeleteTextures(1, &atlas_texture_id);
+  }
+}
 
-void r_present(void) {
+void microui_opengl2_new_frame(int display_width, int display_height) {
+  width = display_width;
+  height = display_height;
+}
+
+void microui_opengl2_render_data(mu_Context *ctx) {
+  mu_Command *cmd = NULL;
+  while (mu_next_command(ctx, &cmd)) {
+    switch (cmd->type) {
+      case MU_COMMAND_TEXT: draw_text(cmd->text.str, cmd->text.pos, cmd->text.color); break;
+      case MU_COMMAND_RECT: draw_rect(cmd->rect.rect, cmd->rect.color); break;
+      case MU_COMMAND_ICON: draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color); break;
+      case MU_COMMAND_CLIP: set_clip_rect(cmd->clip.rect); break;
+    }
+  }
   flush();
-  SDL_GL_SwapWindow(window);
 }
