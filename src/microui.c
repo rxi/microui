@@ -854,8 +854,8 @@ int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high,
 {
   char buf[MU_MAX_FMT + 1];
   mu_Rect thumb;
-  int w, res = 0;
-  mu_Real normalized, last = *value, v = last;
+  int x, w, res = 0;
+  mu_Real last = *value, v = last;
   mu_Id id = mu_get_id(ctx, &value, sizeof(value));
   mu_Rect base = mu_layout_next(ctx);
 
@@ -867,8 +867,8 @@ int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high,
 
   /* handle input */
   if (ctx->focus == id && ctx->mouse_down == MU_MOUSE_LEFT) {
-    v = low + ((mu_Real) (ctx->mouse_pos.x - base.x) / base.w) * (high - low);
-    if (step) { v = ((long) ((v + step/2) / step)) * step; }
+    v = low + (ctx->mouse_pos.x - base.x) * (high - low) / base.w;
+    if (step) { v = (((v + step / 2) / step)) * step; }
   }
   /* clamp and store value, update res */
   *value = v = mu_clamp(v, low, high);
@@ -878,8 +878,8 @@ int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high,
   mu_draw_control_frame(ctx, id, base, MU_COLOR_BASE, opt);
   /* draw thumb */
   w = ctx->style->thumb_size;
-  normalized = (v - low) / (high - low);
-  thumb = mu_rect(base.x + normalized * (base.w - w), base.y, w, base.h);
+  x = (v - low) * (base.w - w) / (high - low);
+  thumb = mu_rect(base.x + x, base.y, w, base.h);
   mu_draw_control_frame(ctx, id, thumb, MU_COLOR_BUTTON, opt);
   /* draw text  */
   sprintf(buf, fmt, v);
