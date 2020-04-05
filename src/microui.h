@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2019 rxi
+** Copyright (c) 2020 rxi
 **
 ** This library is free software; you can redistribute it and/or modify it
 ** under the terms of the MIT license. See `microui.c` for details.
@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 
-#define MU_VERSION "1.02"
+#define MU_VERSION "1.03"
 
 #define MU_COMMANDLIST_SIZE     (1024 * 256)
 #define MU_ROOTLIST_SIZE        32
