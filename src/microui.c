@@ -866,7 +866,9 @@ int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high,
   mu_update_control(ctx, id, base, opt);
 
   /* handle input */
-  if (ctx->focus == id && ctx->mouse_down == MU_MOUSE_LEFT) {
+  if (ctx->focus == id &&
+      (ctx->mouse_down | ctx->mouse_pressed) == MU_MOUSE_LEFT)
+  {
     v = low + (ctx->mouse_pos.x - base.x) * (high - low) / base.w;
     if (step) { v = (((v + step / 2) / step)) * step; }
   }
