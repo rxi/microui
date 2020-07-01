@@ -1,9 +1,16 @@
 #!/bin/bash
-if test `uname -o` == "Msys"; then
-    GL="opengl32"
+
+OS_NAME=`uname -o 2>/dev/null || uname -s`
+
+if [ $OS_NAME == "Msys" ]; then
+    GLFLAG="-lopengl32"
+elif [ $OS_NAME == "Darwin" ]; then
+    GLFLAG="-framework OpenGL"
 else
-    GL="GL"
+    GLFLAG="-lGL"
 fi
-gcc main.c renderer.c ../src/microui.c -I../src\
-    -Wall -std=c11 -pedantic `sdl2-config --libs` -l${GL} -lm -O3 -g
+
+CFLAGS="-I../src -Wall -std=c11 -pedantic `sdl2-config --libs` $GLFLAG -lm -O3 -g"
+
+gcc main.c renderer.c ../src/microui.c $CFLAGS
 
