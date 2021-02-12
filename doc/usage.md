@@ -115,6 +115,18 @@ while (mu_next_command(ctx, &cmd)) {
 
 See the [`demo`](../demo) directory for a usage example.
 
+A couple of pointers:
+* When microui wants you to "clear" the clip rectangle, it will 
+  send a MU_COMMAND_CLIP where the rectangle width and height are
+  0x1000000. Depending on your rendering backend, simply passing this
+  through may or may not work. If the demo screen looks garbled, try
+  telling your backend to explicitly unset the clip rectangle. For
+  example, using the SDL Rendering API, the call would be
+  `SDL_RenderSetClipRect(renderer, NULL);`
+* MU_COMMAND_RECT expects you to draw a filled rectangle, not just
+  an outline.
+* MU_COMMAND_ICON expects you to place the icon within the center
+  of the provided rect.
 
 ## Layout System
 The layout system is primarily based around *rows* — Each row
