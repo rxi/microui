@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 OS_NAME=`uname -o 2>/dev/null || uname -s`
 
