@@ -1,5 +1,14 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#include <SDL.h>
+
+#define USE_SDL_RENDERER 0
+
+#if USE_SDL_RENDERER
+typedef float GLfloat;
+typedef Uint8 GLubyte;
+typedef Uint32 GLuint;
+#else
+#  include <SDL_opengl.h>
+#endif
 #include <assert.h>
 #include "renderer.h"
 #include "atlas.inl"
@@ -15,7 +24,11 @@ static int width  = 800;
 static int height = 600;
 static int buf_idx;
 
-static SDL_Window *window;
+static SDL_Window *window = NULL;
+#if USE_SDL_RENDERER
+static SDL_Renderer *renderer = NULL;
+static SDL_Texture *texture = NULL;
+#endif
 
 
 void r_init(void) {
@@ -23,6 +36,47 @@ void r_init(void) {
   window = SDL_CreateWindow(
     NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
     width, height, SDL_WINDOW_OPENGL);
+
+#if USE_SDL_RENDERER
+  /* force a renderer for testing */
+//  SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
+//  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+//  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+//  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
+
+  int flags = 0;
+  flags |= SDL_RENDERER_ACCELERATED;
+  // flags |= SDL_RENDERER_PRESENTVSYNC;
+  renderer = SDL_CreateRenderer(window, -1, flags);
+  if (renderer == NULL) {
+      SDL_Log("Error creating SDL renderer: %s", SDL_GetError());
+      return;
+  } else {
+      SDL_RendererInfo info;
+      SDL_GetRendererInfo(renderer, &info);
+      SDL_Log("Current SDL Renderer: %s", info.name);
+  }
+
+  texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, ATLAS_WIDTH, ATLAS_HEIGHT);
+  if (texture == NULL) {
+      SDL_Log("Error creating texture: %s", SDL_GetError());
+      return;
+  }
+  /* atlas_texture only contains GL_ALPHA channel, so create an intermediate ABGR8888 for SDL2 */
+  {
+    Uint8 *ptr = SDL_malloc(4 * ATLAS_WIDTH * ATLAS_HEIGHT);
+    for (int x = 0; x < ATLAS_WIDTH * ATLAS_HEIGHT; x++) {
+        ptr[4 * x] = 255;
+        ptr[4 * x + 1] = 255;
+        ptr[4 * x + 2] = 255;
+        ptr[4 * x + 3] = atlas_texture[x];
+    }
+    SDL_UpdateTexture(texture, NULL, ptr, 4 * ATLAS_WIDTH);
+    SDL_free(ptr);
+  }
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+#else
+
   SDL_GL_CreateContext(window);
 
   /* init gl */
@@ -45,10 +99,32 @@ void r_init(void) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   assert(glGetError() == 0);
+#endif
 }
 
 
 static void flush(void) {
+#if USE_SDL_RENDERER
+  if (buf_idx == 0) { return; }
+
+  int xy_stride = 2 * sizeof(float);
+  float *xy = vert_buf;
+
+  int uv_stride = 2 * sizeof(float);
+  float *uv = tex_buf;
+
+  int col_stride = 4 * sizeof(Uint8);
+  int *color = (int*)color_buf;
+
+  SDL_RenderGeometryRaw(renderer, texture,
+          xy, xy_stride, color,
+          col_stride,
+          uv, uv_stride,
+          buf_idx * 4,
+          index_buf, buf_idx * 6, sizeof (int));
+
+  buf_idx = 0;
+#else
   if (buf_idx == 0) { return; }
 
   glViewport(0, 0, width, height);
@@ -71,6 +147,7 @@ static void flush(void) {
   glPopMatrix();
 
   buf_idx = 0;
+#endif
 }
 
 
@@ -168,18 +245,36 @@ int r_get_text_height(void) {
 
 void r_set_clip_rect(mu_Rect rect) {
   flush();
+#if USE_SDL_RENDERER
+  SDL_Rect r;
+  r.x = rect.x;
+  r.y = rect.y;
+  r.w = rect.w;
+  r.h = rect.h;
+  SDL_RenderSetClipRect(renderer, &r);
+#else
   glScissor(rect.x, height - (rect.y + rect.h), rect.w, rect.h);
+#endif
 }
 
 
 void r_clear(mu_Color clr) {
   flush();
+#if USE_SDL_RENDERER
+  SDL_SetRenderDrawColor(renderer, clr.r, clr.g, clr.b, clr.a);
+  SDL_RenderClear(renderer);
+#else
   glClearColor(clr.r / 255., clr.g / 255., clr.b / 255., clr.a / 255.);
   glClear(GL_COLOR_BUFFER_BIT);
+#endif
 }
 
 
 void r_present(void) {
   flush();
+#if USE_SDL_RENDERER
+  SDL_RenderPresent(renderer);
+#else
   SDL_GL_SwapWindow(window);
+#endif
 }
