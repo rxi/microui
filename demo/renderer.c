@@ -1,6 +1,6 @@
 #include <SDL.h>
 
-#define USE_SDL_RENDERER 1
+#define USE_SDL_RENDERER 0
 
 #if USE_SDL_RENDERER
 typedef float GLfloat;
@@ -39,9 +39,9 @@ void r_init(void) {
 
 #if USE_SDL_RENDERER
   /* force a renderer for testing */
-  SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
+//  SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
 //  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
-  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+//  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 //  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
 
   int flags = 0;
