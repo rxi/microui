@@ -10,7 +10,8 @@
 
 #define MU_VERSION "2.01"
 
-#define MU_COMMANDLIST_SIZE     (256 * 1024)
+#define MU_CONTEXT_TEXT_SIZE    65536
+#define MU_COMMANDLIST_SIZE     4096
 #define MU_ROOTLIST_SIZE        32
 #define MU_CONTAINERSTACK_SIZE  32
 #define MU_CLIPSTACK_SIZE       32
@@ -116,14 +117,16 @@ typedef struct { int x, y, w, h; } mu_Rect;
 typedef struct { unsigned char r, g, b, a; } mu_Color;
 typedef struct { mu_Id id; int last_update; } mu_PoolItem;
 
-typedef struct { int type, size; } mu_BaseCommand;
-typedef struct { mu_BaseCommand base; void *dst; } mu_JumpCommand;
+typedef union mu_Command mu_Command;
+
+typedef struct { int type; } mu_BaseCommand;
+typedef struct { mu_BaseCommand base; union mu_Command *dst; } mu_JumpCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; } mu_ClipCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; mu_Color color; } mu_RectCommand;
-typedef struct { mu_BaseCommand base; mu_Font font; mu_Vec2 pos; mu_Color color; char str[1]; } mu_TextCommand;
+typedef struct { mu_BaseCommand base; mu_Font font; mu_Vec2 pos; mu_Color color; char* str; } mu_TextCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; int id; mu_Color color; } mu_IconCommand;
 
-typedef union {
+union mu_Command {
   int type;
   mu_BaseCommand base;
   mu_JumpCommand jump;
@@ -131,7 +134,7 @@ typedef union {
   mu_RectCommand rect;
   mu_TextCommand text;
   mu_IconCommand icon;
-} mu_Command;
+};
 
 typedef struct {
   mu_Rect body;
@@ -190,12 +193,13 @@ struct mu_Context {
   char number_edit_buf[MU_MAX_FMT];
   mu_Id number_edit;
   /* stacks */
-  mu_stack(char, MU_COMMANDLIST_SIZE) command_list;
+  mu_stack(mu_Command, MU_COMMANDLIST_SIZE) command_list;
   mu_stack(mu_Container*, MU_ROOTLIST_SIZE) root_list;
   mu_stack(mu_Container*, MU_CONTAINERSTACK_SIZE) container_stack;
   mu_stack(mu_Rect, MU_CLIPSTACK_SIZE) clip_stack;
   mu_stack(mu_Id, MU_IDSTACK_SIZE) id_stack;
   mu_stack(mu_Layout, MU_LAYOUTSTACK_SIZE) layout_stack;
+  mu_stack(char, MU_CONTEXT_TEXT_SIZE) text_stack;
   /* retained state pools */
   mu_PoolItem container_pool[MU_CONTAINERPOOL_SIZE];
   mu_Container containers[MU_CONTAINERPOOL_SIZE];
@@ -244,7 +248,7 @@ void mu_input_keydown(mu_Context *ctx, int key);
 void mu_input_keyup(mu_Context *ctx, int key);
 void mu_input_text(mu_Context *ctx, const char *text);
 
-mu_Command* mu_push_command(mu_Context *ctx, int type, int size);
+mu_Command* mu_push_command(mu_Context *ctx, int type);
 int mu_next_command(mu_Context *ctx, mu_Command **cmd);
 void mu_set_clip(mu_Context *ctx, mu_Rect rect);
 void mu_draw_rect(mu_Context *ctx, mu_Rect rect, mu_Color color);
