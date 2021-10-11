@@ -198,14 +198,14 @@ void mu_end(mu_Context *ctx) {
     ** otherwise set the previous container's tail to jump to this one */
     if (i == 0) {
       mu_Command *cmd = (mu_Command*) ctx->command_list.items;
-      cmd->jump.dst = cnt->head + 1;
+      cmd->jump.dst_idx = cnt->head_idx + 1;
     } else {
       mu_Container *prev = ctx->root_list.items[i - 1];
-      prev->tail->jump.dst = cnt->head + 1;
+      ctx->command_list.items[prev->tail_idx].jump.dst_idx = cnt->head_idx + 1;
     }
     /* make the last container's tail jump to the end of command list */
     if (i == n - 1) {
-      cnt->tail->jump.dst = &ctx->command_list.items[ctx->command_list.idx];
+      ctx->command_list.items[cnt->tail_idx].jump.dst_idx = ctx->command_list.idx;
     }
   }
 }
@@ -451,17 +451,17 @@ int mu_next_command(mu_Context *ctx, mu_Command **cmd) {
   }
   while (*cmd != &ctx->command_list.items[ctx->command_list.idx]) {
     if ((*cmd)->type != MU_COMMAND_JUMP) { return 1; }
-    *cmd = (*cmd)->jump.dst;
+    *cmd = &ctx->command_list.items[(*cmd)->jump.dst_idx];
   }
   return 0;
 }
 
 
-static mu_Command* push_jump(mu_Context *ctx, mu_Command *dst) {
+static int push_jump(mu_Context *ctx, int dst_idx) {
   mu_Command *cmd;
   cmd = mu_push_command(ctx, MU_COMMAND_JUMP);
-  cmd->jump.dst = dst;
-  return cmd;
+  cmd->jump.dst_idx = dst_idx;
+  return ctx->command_list.idx - 1;
 }
 
 
@@ -643,7 +643,7 @@ static int in_hover_root(mu_Context *ctx) {
     if (ctx->container_stack.items[i] == ctx->hover_root) { return 1; }
     /* only root containers have their `head` field set; stop searching if we've
     ** reached the current root container */
-    if (ctx->container_stack.items[i]->head) { break; }
+    if (ctx->container_stack.items[i]->head_idx != -1) { break; }
   }
   return 0;
 }
@@ -1062,7 +1062,7 @@ static void begin_root_container(mu_Context *ctx, mu_Container *cnt) {
   push(ctx->container_stack, cnt);
   /* push container to roots list and push head command */
   push(ctx->root_list, cnt);
-  cnt->head = push_jump(ctx, NULL);
+  cnt->head_idx = push_jump(ctx, -1);
   /* set as hover root if the mouse is overlapping this container and it has a
   ** higher zindex than the current hover root */
   if (rect_overlaps_vec2(cnt->rect, ctx->mouse_pos) &&
@@ -1081,8 +1081,8 @@ static void end_root_container(mu_Context *ctx) {
   /* push tail 'goto' jump command and set head 'skip' command. the final steps
   ** on initing these are done in mu_end() */
   mu_Container *cnt = mu_get_current_container(ctx);
-  cnt->tail = push_jump(ctx, NULL);
-  cnt->head->jump.dst = &ctx->command_list.items[ctx->command_list.idx];
+  cnt->tail_idx = push_jump(ctx, -1);
+  ctx->command_list.items[cnt->head_idx].jump.dst_idx = ctx->command_list.idx;
   /* pop base clip rect and container */
   mu_pop_clip_rect(ctx);
   pop_container(ctx);

@@ -120,7 +120,7 @@ typedef struct { mu_Id id; int last_update; } mu_PoolItem;
 typedef union mu_Command mu_Command;
 
 typedef struct { int type; } mu_BaseCommand;
-typedef struct { mu_BaseCommand base; union mu_Command *dst; } mu_JumpCommand;
+typedef struct { mu_BaseCommand base; int dst_idx; } mu_JumpCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; } mu_ClipCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; mu_Color color; } mu_RectCommand;
 typedef struct { mu_BaseCommand base; mu_Font font; mu_Vec2 pos; mu_Color color; char* str; } mu_TextCommand;
@@ -151,7 +151,7 @@ typedef struct {
 } mu_Layout;
 
 typedef struct {
-  mu_Command *head, *tail;
+  int head_idx, tail_idx;
   mu_Rect rect;
   mu_Rect body;
   mu_Vec2 content_size;
