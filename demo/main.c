@@ -196,7 +196,7 @@ static void style_window(mu_Context *ctx) {
 
 static void process_frame(mu_Context *ctx) {
   mu_begin(ctx);
-  //style_window(ctx);
+  style_window(ctx);
   log_window(ctx);
   test_window(ctx);
   mu_end(ctx);
