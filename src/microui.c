@@ -198,13 +198,17 @@ void mu_end(mu_Context *ctx) {
     ** otherwise set the previous container's tail to jump to this one */
     if (i == 0) {
       mu_Command *cmd = (mu_Command*) ctx->command_list.items;
+      expect(cmd->type == MU_COMMAND_JUMP);
       cmd->jump.dst_idx = cnt->head_idx + 1;
+      expect(cmd->jump.dst_idx < MU_COMMANDLIST_SIZE);
     } else {
       mu_Container *prev = ctx->root_list.items[i - 1];
       ctx->command_list.items[prev->tail_idx].jump.dst_idx = cnt->head_idx + 1;
     }
     /* make the last container's tail jump to the end of command list */
     if (i == n - 1) {
+      expect(cnt->tail_idx < MU_COMMANDLIST_SIZE);
+      expect(ctx->command_list.items[cnt->tail_idx].type == MU_COMMAND_JUMP);
       ctx->command_list.items[cnt->tail_idx].jump.dst_idx = ctx->command_list.idx;
     }
   }
@@ -323,6 +327,8 @@ static mu_Container* get_container(mu_Context *ctx, mu_Id id, int opt) {
   idx = mu_pool_init(ctx, ctx->container_pool, MU_CONTAINERPOOL_SIZE, id);
   cnt = &ctx->containers[idx];
   memset(cnt, 0, sizeof(*cnt));
+  cnt->head_idx = -1;
+  cnt->tail_idx = -1;
   cnt->open = 1;
   mu_bring_to_front(ctx, cnt);
   return cnt;
@@ -461,6 +467,7 @@ static int push_jump(mu_Context *ctx, int dst_idx) {
   mu_Command *cmd;
   cmd = mu_push_command(ctx, MU_COMMAND_JUMP);
   cmd->jump.dst_idx = dst_idx;
+  expect(cmd == &ctx->command_list.items[ctx->command_list.idx - 1]);
   return ctx->command_list.idx - 1;
 }
 
@@ -992,7 +999,6 @@ void mu_end_treenode(mu_Context *ctx) {
   get_layout(ctx)->indent -= ctx->style->indent;
   mu_pop_id(ctx);
 }
-
 
 #define scrollbar(ctx, cnt, b, cs, x, y, w, h)                              \
   do {                                                                      \
