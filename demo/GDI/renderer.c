@@ -105,7 +105,7 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
     case MU_ICON_CHECK:		c = 'X'; break;
     case MU_ICON_COLLAPSED:	c = '>'; break;
     case MU_ICON_EXPANDED:	c = 'v'; break;
-    case MU_ICON_RESIZE:	c = '+'; break;
+    //case MU_ICON_RESIZE:	c = '+'; break;
     }
     buf[0] = c;
     buf[1] = 0;
