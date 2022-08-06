@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
 #ifndef RENDERER_H
 #define RENDERER_H
@@ -6,6 +5,11 @@
 #include <windows.h>
 #include <wingdi.h>
 #include "microui.h"
+
+#define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
+#define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
+
+extern int running;
 
 void r_init(void);
 void r_draw_rect(mu_Rect rect, mu_Color color);
@@ -18,4 +22,5 @@ void r_clear(mu_Color color);
 void r_begin(void);
 void r_end(void);
 void r_handle_input(mu_Context* ctx);
+int size_t2int(size_t val);
 #endif

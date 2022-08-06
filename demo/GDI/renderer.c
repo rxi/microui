@@ -1,16 +1,14 @@
-#define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
-
-#define GET_X_LPARAM(lp)                        ((int)(short)LOWORD(lp))
-#define GET_Y_LPARAM(lp)                        ((int)(short)HIWORD(lp))
+#define INT_MAX (int) ((unsigned) -1 / 2)
 
 #include "renderer.h"
 #include <stdio.h>
+#include "microui.h"
 
 static int width = 800;
 static int height = 600;
 
-static int running = 1;
+int running;
 static int needs_refresh = 1;
 
 static HWND window;
@@ -29,16 +27,28 @@ static char tstr;
 static TEXTMETRICW lptm;
 static int drag = 0;
 
+int size_t2int(size_t val) {
+    return (val <= INT_MAX) ? (int)((size_t)val) : -1;
+}
+
 /*unused we have our own window proc*/
 /*this might need to be attached differently ? */
 static LRESULT CALLBACK
 WindowProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+    switch (msg)
+    {
+    case WM_DESTROY:
+        running=0;
+        PostQuitMessage(0);
+        return 0;
+    }
+
     return DefWindowProc(wnd, msg, wparam, lparam);
 }
 
 void r_init(void) {
-
+    running = 1;
     /* Win32 Window */
     WNDCLASSA wc;
 
@@ -66,20 +76,26 @@ void r_init(void) {
         NULL, NULL, wc.hInstance, NULL);
     window = wnd;
     hFont = (HFONT)GetStockObject(ANSI_VAR_FONT);
-    GetTextMetricsA(hFont, &lptm);
+    //GetTextMetricsA(hFont, &lptm);
 
 }
 
 static void push_quad(mu_Rect dst, mu_Color color) {
+    if (color.a < 1) {
+        /*no real alpha!*/
+        return;
+    }
 
     RECT rect;
     SetRect(&rect, dst.x, dst.y, dst.x + dst.w, dst.y + dst.h);
+    
     SetBkColor(Memhdc, RGB(color.r, color.g, color.b));
     ExtTextOutA(Memhdc, 0, 0, ETO_OPAQUE, &rect, NULL, 0, NULL);
 
 }
 
 void r_draw_rect(mu_Rect rect, mu_Color color) {
+
     push_quad(rect, color);
 }
 
@@ -120,14 +136,14 @@ int r_get_text_width(const char* text, int len)
 {
     SIZE size;
     SelectObject(Memhdc, hFont);
-    GetTextExtentPoint32A(Memhdc, text, strlen(text), &size);
-    return (int)size.cx;
+    GetTextExtentPoint32A(Memhdc, text, size_t2int(strlen(text)), &size);
+    return size_t2int(size.cx);
 }
 int r_get_text_height(void) {
     SIZE size;
     SelectObject(Memhdc, hFont);
-    GetTextExtentPoint32A(Memhdc, "A", strlen("A"), &size);
-    return (int)size.cy;
+    GetTextExtentPoint32A(Memhdc, "A", 1, &size);
+    return size_t2int(size.cy);
 }
 
 void r_set_clip_rect(mu_Rect rect) {
@@ -212,9 +228,6 @@ void r_handle_input(mu_Context* ctx)
 
     switch (msg.message) {
 
-    case WM_DESTROY: {
-        return;
-    }
     case WM_CREATE: {
         return;
     }
@@ -222,7 +235,6 @@ void r_handle_input(mu_Context* ctx)
     {
         return;
     }
-
     case WM_DRAWITEM:
     {
         return;

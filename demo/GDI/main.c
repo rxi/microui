@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <stdlib.h>
 #include <stdio.h>
 #include "microui.h"
@@ -104,7 +103,7 @@ static void test_window(mu_Context* ctx) {
             mu_layout_end_column(ctx);
             /* color preview */
             mu_Rect r = mu_layout_next(ctx);
-            mu_draw_rect(ctx, r, mu_color(bg[0], bg[1], bg[2], 255));
+            mu_draw_rect(ctx, r, mu_color((int)bg[0], (int)bg[1], (int)bg[2], 255));
             char buf[32];
             sprintf(buf, "#%02X%02X%02X", (int)bg[0], (int)bg[1], (int)bg[2]);
             mu_draw_control_text(ctx, buf, r, MU_COLOR_TEXT, MU_OPT_ALIGNCENTER);
@@ -152,8 +151,8 @@ static int uint8_slider(mu_Context* ctx, unsigned char* value, int low, int high
     static float tmp;
     mu_push_id(ctx, &value, sizeof(value));
     tmp = *value;
-    int res = mu_slider_ex(ctx, &tmp, low, high, 0, "%.0f", MU_OPT_ALIGNCENTER);
-    *value = tmp;
+    int res = mu_slider_ex(ctx, &tmp, (mu_Real)low, (mu_Real)high, 0, "%.0f", MU_OPT_ALIGNCENTER);
+    *value = (unsigned char)tmp;
     mu_pop_id(ctx);
     return res;
 }
@@ -179,7 +178,7 @@ static void style_window(mu_Context* ctx) {
     };
 
     if (mu_begin_window(ctx, "Style Editor", mu_rect(350, 250, 300, 240))) {
-        int sw = mu_get_current_container(ctx)->body.w * 0.14;
+        int sw =(int)(mu_get_current_container(ctx)->body.w * 0.14);
         mu_layout_row(ctx, 6, (int[]) { 80, sw, sw, sw, sw, -1 }, 0);
         for (int i = 0; colors[i].label; i++) {
             mu_label(ctx, colors[i].label);
@@ -204,7 +203,7 @@ static void process_frame(mu_Context* ctx) {
 
 
 static int text_width(mu_Font font, const char* text, int len) {
-    if (len == -1) { len = strlen(text); }
+    if (len == -1) { len = size_t2int(strlen(text)); }
     return r_get_text_width(text, len);
 }
 
@@ -225,7 +224,7 @@ int main() {
     printf("Initalized context...");
 
     /* main loop */
-    while (1) {
+    while (running) {
 
         r_handle_input(ctx);
 
@@ -235,7 +234,7 @@ int main() {
         /* render */
         r_begin();
 
-        r_clear(mu_color(bg[0], bg[1], bg[2], 255));
+        r_clear(mu_color((int)bg[0], (int)bg[1], (int)bg[2], 255));
 
         mu_Command* cmd = NULL;
         while (mu_next_command(ctx, &cmd)) {
