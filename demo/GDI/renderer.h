@@ -19,4 +19,3 @@ void r_begin(void);
 void r_end(void);
 void r_handle_input(mu_Context* ctx);
 #endif
-
