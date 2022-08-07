@@ -1,3 +1,9 @@
+#ifdef __MINGW32__
+#else
+    #pragma comment(linker, "/SUBSYSTEM:windows")
+#endif
+
+#define WIN32_LEAN_AND_MEAN
 #define FPS
 #define _ITERATOR_DEBUG_LEVEL 0
 #define _SCL_SECURE_NO_WARNINGS
@@ -8,8 +14,8 @@
 #include "renderer.h"
 
 static  char logbuf[4096];
-
-static   int logbuf_updated = 0;
+int running;
+static int logbuf_updated = 0;
 static float bg[3] = { 90, 95, 100 };
 static long logbuf_idx = 0;
 
@@ -150,7 +156,7 @@ static void log_window(mu_Context* ctx) {
         }
 
         /* input textbox + submit button */
-        static char buf[128];
+        static char buf[128] = { 0 };
         
         int submitted = 0;
         mu_layout_row(ctx, 2, (int[]) { -70, -1 }, 0);
@@ -252,15 +258,18 @@ int main() {
     mu_init(ctx);
     ctx->text_width = text_width;
     ctx->text_height = text_height;
-    printf("Initalized context...");
     static char frame_rate[32];
 
     /* main loop */
-    while (running) {
+    while (1) {
 #ifdef FPS
         QueryPerformanceFrequency(&freq);
         QueryPerformanceCounter(&qpc_start);
 #endif // FPS       
+
+        if (!running) {
+            break;
+        }
 
         r_handle_input(ctx);
 

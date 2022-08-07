@@ -8,8 +8,14 @@
 static int width = 800;
 static int height = 600;
 
-int running;
 static int needs_refresh = 1;
+
+
+#ifdef __MINGW32__
+#else
+    /*not sure why mingw does not like this?*/
+    int running;
+#endif
 
 static HWND window;
 static HDC dc;
@@ -279,7 +285,7 @@ void r_handle_input(mu_Context* ctx)
     case WM_SYSKEYUP:
     {
         int down = !((msg.lParam >> 31) & 1);
-        int ctrl = GetKeyState(VK_CONTROL) & (1 << 15);
+        //int ctrl = GetKeyState(VK_CONTROL) & (1 << 15);
         switch (msg.wParam)
         {
         case VK_SHIFT:
