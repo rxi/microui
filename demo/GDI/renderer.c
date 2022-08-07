@@ -23,12 +23,21 @@ static HDC Memhdc;
 static HBITMAP Membitmap;
 
 HFONT hFont;
-static char tstr;
-static TEXTMETRICW lptm;
+//static TEXTMETRICW lptm;
 static int drag = 0;
+
 
 int size_t2int(size_t val) {
     return (val <= INT_MAX) ? (int)((size_t)val) : -1;
+}
+
+char* numToASCII(int num) {
+    char* string = malloc(2);
+    if (!string)
+        return 0;
+    string[0] = num;
+    string[1] = 0;
+    return string;
 }
 
 /*unused we have our own window proc*/
@@ -36,14 +45,14 @@ int size_t2int(size_t val) {
 static LRESULT CALLBACK
 WindowProc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    switch (msg)
+
+    if(msg ==  WM_DESTROY)
     {
-    case WM_DESTROY:
         running=0;
         PostQuitMessage(0);
         return 0;
     }
-
+   
     return DefWindowProc(wnd, msg, wparam, lparam);
 }
 
@@ -100,20 +109,17 @@ void r_draw_rect(mu_Rect rect, mu_Color color) {
 }
 
 void r_draw_text(const char* text, mu_Vec2 pos, mu_Color color) {
-    char buff[1024] = { 0 };
-    
-    strcat(buff, text);
-    strcat(buff, "\0");
 
     SelectObject(Memhdc, hFont);
     SetBkMode(Memhdc, TRANSPARENT);
     SetTextColor(Memhdc, RGB(color.r, color.g, color.b));
-    ExtTextOutA(Memhdc, pos.x, pos.y, ETO_OPAQUE, NULL, (LPCSTR)buff, sizeof(text), NULL);
+    ExtTextOutA(Memhdc, pos.x, pos.y, ETO_OPAQUE, NULL, (LPCSTR)text, strlen(text), NULL);
 
 }
 
 void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
-    int c, w, h;
+    
+    int c=0, w=0, h=0;
     mu_Vec2 pos;
     char buf[2];
     switch (id) {
@@ -132,8 +138,23 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
     r_draw_text(buf, pos, color);
 }
 
-int r_get_text_width(const char* text, int len)
+int r_get_text_width(const char* text, int len) {
+    int chrlen = 0;
+    int strlen = 0;
+    for (int i = 0; i < len; i++) {
+        chrlen = 0;
+        GetCharWidthA(Memhdc, text[i], text[i],&chrlen);
+        strlen += chrlen;
+
+    }
+    return strlen;
+}
+
+
+
+int _r_get_text_width(const char* text, int len)
 {
+    return 32;
     SIZE size;
     SelectObject(Memhdc, hFont);
     GetTextExtentPoint32A(Memhdc, text, size_t2int(strlen(text)), &size);
@@ -142,16 +163,19 @@ int r_get_text_width(const char* text, int len)
 int r_get_text_height(void) {
     SIZE size;
     SelectObject(Memhdc, hFont);
-    GetTextExtentPoint32A(Memhdc, "A", 1, &size);
+    GetTextExtentPoint32A(Memhdc, "E", 1, &size);
     return size_t2int(size.cy);
 }
 
 void r_set_clip_rect(mu_Rect rect) {
+
     SelectClipRgn(Memhdc, NULL);
-    IntersectClipRect(Memhdc, (int)rect.x, (int)rect.y, (int)(rect.x + rect.w + 1), (int)(rect.y + rect.h + 1));
+    IntersectClipRect(Memhdc, rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
 }
 
+
 void r_clear(mu_Color color) {
+    
     RECT rect;
     SetRect(&rect, Client_Rect.left, Client_Rect.top, Client_Rect.right, Client_Rect.bottom);
     SetBkColor(Memhdc, RGB(color.r, color.g, color.b));
@@ -168,8 +192,6 @@ void r_begin(void) {
     /* I need to confirm I dont have any stray undelted objects leaking... */
 
     /* Begin drawing */
-
-    InvalidateRect(window, NULL, FALSE);
 
     GetClientRect(window, &Client_Rect);
     InvalidateRect(window, &Client_Rect, FALSE);
@@ -191,9 +213,11 @@ void r_end(void) {
     DeleteDC(dc);
     DeleteObject(Membitmap);
     EndPaint(window, &ps);
-    
+    /*not sure if this is needed?*/
     DeleteObject((HGDIOBJ)ps.hdc);
 }
+
+
 
 void r_handle_input(mu_Context* ctx)
 {
@@ -256,10 +280,36 @@ void r_handle_input(mu_Context* ctx)
     {
         int down = !((msg.lParam >> 31) & 1);
         int ctrl = GetKeyState(VK_CONTROL) & (1 << 15);
-        if (ctrl) {};
-        if (down) { mu_input_keydown(ctx, (int)msg.wParam); }
-        else { mu_input_keyup(ctx, (int)msg.wParam); }
-        if (msg.wParam == VK_RETURN) {}
+        switch (msg.wParam)
+        {
+        case VK_SHIFT:
+        case VK_LSHIFT:
+        case VK_RSHIFT:
+            mu_input_keydown(ctx, MU_KEY_SHIFT);
+            return 1;
+        case VK_BACK:
+        case VK_DELETE:
+            mu_input_keydown(ctx, MU_KEY_BACKSPACE);
+            return 1;
+        case VK_RETURN:
+            mu_input_keydown(ctx, MU_KEY_RETURN);
+            return 1;
+        case VK_MENU:
+        case VK_RMENU:
+        case VK_LMENU:
+            mu_input_keydown(ctx, MU_KEY_ALT);
+            return 1;
+        case VK_TAB:
+        case VK_LEFT:
+        case VK_RIGHT:
+        case VK_HOME:
+        case VK_END:
+        case VK_NEXT:
+        case VK_PRIOR:
+            /*not handled*/
+            return;
+            return;
+        }
     }
 
     case WM_CHAR: {
@@ -267,10 +317,10 @@ void r_handle_input(mu_Context* ctx)
         {
             int down = !((msg.lParam >> 31) & 1);
             if (down) {
-                mu_input_text(ctx, &(char)(msg.wParam));
+                char* result = numToASCII(msg.wParam);
+                mu_input_text(ctx, result);
+                free(result);
             }
-
-
         }
     }
     case WM_MOUSEMOVE: {

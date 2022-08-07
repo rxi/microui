@@ -1,17 +1,39 @@
+#define FPS
+#define _ITERATOR_DEBUG_LEVEL 0
+#define _SCL_SECURE_NO_WARNINGS
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "microui.h"
 #include "renderer.h"
 
-static  char logbuf[64000];
+static  char logbuf[4096];
+
 static   int logbuf_updated = 0;
 static float bg[3] = { 90, 95, 100 };
+static long logbuf_idx = 0;
+
+float lerp(float a, float b, float f) {
+    return (a * (1.0f - f)) + (b * f);
+}
 
 
-static void write_log(const char* text) {
-    if (logbuf[0]) { strcat(logbuf, "\n"); }
-    strcat(logbuf, text);
+static void write_log(char* text) {
+    
+    /*just a saftey check make sure we are inside the buffer*/
+    if (logbuf_idx > sizeof(logbuf)) {
+        memset(logbuf, 0x0, sizeof(logbuf));
+        logbuf_idx = 0;
+    }
+    else {    
+        memcpy(logbuf + logbuf_idx, text, strlen(text));
+        logbuf_idx += strlen(text);
+        memset(logbuf+ logbuf_idx, 0x0A, 1);
+        logbuf_idx += 1;
+    }
+
     logbuf_updated = 1;
+    /*printf("%d\n %s \n", logbuf_idx, logbuf);*/
 }
 
 
@@ -130,6 +152,7 @@ static void log_window(mu_Context* ctx) {
 
         /* input textbox + submit button */
         static char buf[128];
+        
         int submitted = 0;
         mu_layout_row(ctx, 2, (int[]) { -70, -1 }, 0);
         if (mu_textbox(ctx, buf, sizeof(buf)) & MU_RES_SUBMIT) {
@@ -139,7 +162,8 @@ static void log_window(mu_Context* ctx) {
         if (mu_button(ctx, "Submit")) { submitted = 1; }
         if (submitted) {
             write_log(buf);
-            buf[0] = '\0';
+            memset(buf, 0x0, 128);
+            //buf[0] = '\0';
         }
 
         mu_end_window(ctx);
@@ -213,18 +237,32 @@ static int text_height(mu_Font font) {
 
 
 
+
 int main() {
+    
+#ifdef FPS
+    LARGE_INTEGER qpc_start, qpc_end, elap;
+    LARGE_INTEGER freq;
+    static float fps = 0.0f;
+    static float tfps = 0.0f;
+#endif // FPS
 
     /* INIT GUI */
     r_init();
+    memset(logbuf, 0x0, sizeof(logbuf));
     mu_Context* ctx = malloc(sizeof(mu_Context));
     mu_init(ctx);
     ctx->text_width = text_width;
     ctx->text_height = text_height;
     printf("Initalized context...");
+    static char frame_rate[32];
 
     /* main loop */
     while (running) {
+#ifdef FPS
+        QueryPerformanceFrequency(&freq);
+        QueryPerformanceCounter(&qpc_start);
+#endif // FPS       
 
         r_handle_input(ctx);
 
@@ -234,8 +272,12 @@ int main() {
         /* render */
         r_begin();
 
-        r_clear(mu_color((int)bg[0], (int)bg[1], (int)bg[2], 255));
+        r_clear(mu_color((int)bg[0], (int)bg[1], (int)bg[2], 255));     
+#ifdef FPS
+        r_draw_text(frame_rate, (mu_Vec2) { 0, 0 }, (mu_Color) { 55, 20, 20, 0 });
+#endif // FPS
 
+        
         mu_Command* cmd = NULL;
         while (mu_next_command(ctx, &cmd)) {
 
@@ -248,8 +290,18 @@ int main() {
             }
         }
 
-        /* render (blit buffer) */
+        /* end render (blit buffer) */
         r_end();
+
+#ifdef FPS
+        /*fps*/
+        QueryPerformanceCounter(&qpc_end);
+        elap.QuadPart = qpc_end.QuadPart - qpc_start.QuadPart;
+        /*average many frames*/
+        tfps= (float)freq.QuadPart / (float)elap.QuadPart;
+        fps = lerp(fps, tfps, .005);
+        snprintf(frame_rate, 32, "FPS: %d", (int)fps);
+#endif // FPS
 
 
     }
