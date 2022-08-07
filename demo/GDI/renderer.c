@@ -285,20 +285,23 @@ void r_handle_input(mu_Context* ctx)
         case VK_SHIFT:
         case VK_LSHIFT:
         case VK_RSHIFT:
-            mu_input_keydown(ctx, MU_KEY_SHIFT);
-            return 1;
+                mu_input_keydown(ctx, MU_KEY_SHIFT);
+
+            return;
         case VK_BACK:
         case VK_DELETE:
-            mu_input_keydown(ctx, MU_KEY_BACKSPACE);
-            return 1;
-        case VK_RETURN:
-            mu_input_keydown(ctx, MU_KEY_RETURN);
-            return 1;
+             mu_input_keydown(ctx, MU_KEY_BACKSPACE);
+            return;
+        case VK_RETURN:     
+            mu_input_keydown(ctx, MU_KEY_RETURN);            
+            return;
         case VK_MENU:
         case VK_RMENU:
         case VK_LMENU:
-            mu_input_keydown(ctx, MU_KEY_ALT);
-            return 1;
+            if (down) {
+                mu_input_keydown(ctx, MU_KEY_ALT);
+            }
+            return;
         case VK_TAB:
         case VK_LEFT:
         case VK_RIGHT:
@@ -352,13 +355,11 @@ void r_handle_input(mu_Context* ctx)
         }
         if (msg.wParam == MK_RBUTTON) {
             mu_input_mousedown(ctx, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam), 2);
-            mu_input_mousemove(ctx, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
-            SetCapture(window);
+            SetCapture(window);           
             drag = 1;
         }
         if (msg.wParam == MK_LBUTTON) {
             mu_input_mousedown(ctx, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam), 1);
-            mu_input_mousemove(ctx, GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
             SetCapture(window);
             drag = 1;
         }

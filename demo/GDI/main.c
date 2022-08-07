@@ -17,7 +17,6 @@ float lerp(float a, float b, float f) {
     return (a * (1.0f - f)) + (b * f);
 }
 
-
 static void write_log(char* text) {
     
     /*just a saftey check make sure we are inside the buffer*/
@@ -28,12 +27,12 @@ static void write_log(char* text) {
     else {    
         memcpy(logbuf + logbuf_idx, text, strlen(text));
         logbuf_idx += strlen(text);
-        memset(logbuf+ logbuf_idx, 0x0A, 1);
+        memset(logbuf + logbuf_idx, 0x0A, 1);
         logbuf_idx += 1;
     }
 
     logbuf_updated = 1;
-    /*printf("%d\n %s \n", logbuf_idx, logbuf);*/
+    
 }
 
 
@@ -163,7 +162,6 @@ static void log_window(mu_Context* ctx) {
         if (submitted) {
             write_log(buf);
             memset(buf, 0x0, 128);
-            //buf[0] = '\0';
         }
 
         mu_end_window(ctx);
