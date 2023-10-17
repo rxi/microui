@@ -261,11 +261,11 @@ static void mouse_motion_callback(GLFWwindow *window, double x_pos, double y_pos
 static void mouse_scroll_callback(GLFWwindow *window, double x_offset,
                                   double y_offset) {
   /* NOTE: horizontal scroll not tested */
-  mu_input_scroll(g_ctx, (int)x_offset * 30, (int)y_offset * -30);
+  mu_input_scroll(g_ctx, 0, (int)y_offset * -30);
 }
 
 static void character_callback(GLFWwindow *window, unsigned int codepoint) {
-  /* idk, bad? */
+  /* idk */
   const char tmp[] = { (char)codepoint, 0 };
   mu_input_text(g_ctx, tmp);
 }
