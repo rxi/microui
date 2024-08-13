@@ -8,7 +8,7 @@
 #ifndef MICROUI_H
 #define MICROUI_H
 
-#define MU_VERSION "2.01"
+#define MU_VERSION "2.02"
 
 #define MU_COMMANDLIST_SIZE     (256 * 1024)
 #define MU_ROOTLIST_SIZE        32
