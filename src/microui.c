@@ -870,7 +870,7 @@ int mu_slider_ex(mu_Context *ctx, mu_Real *value, mu_Real low, mu_Real high,
       (ctx->mouse_down | ctx->mouse_pressed) == MU_MOUSE_LEFT)
   {
     v = low + (ctx->mouse_pos.x - base.x) * (high - low) / base.w;
-    if (step) { v = (((v + step / 2) / step)) * step; }
+    if (step) { v = ((long long)((v + step / 2) / step)) * step; }
   }
   /* clamp and store value, update res */
   *value = v = mu_clamp(v, low, high);
