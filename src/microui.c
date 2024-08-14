@@ -139,6 +139,7 @@ void mu_begin(mu_Context *ctx) {
   expect(ctx->text_width && ctx->text_height);
   ctx->command_list.idx = 0;
   ctx->root_list.idx = 0;
+  ctx->text_stack.idx = 0;
   ctx->scroll_target = NULL;
   ctx->hover_root = ctx->next_hover_root;
   ctx->next_hover_root = NULL;
@@ -197,14 +198,18 @@ void mu_end(mu_Context *ctx) {
     ** otherwise set the previous container's tail to jump to this one */
     if (i == 0) {
       mu_Command *cmd = (mu_Command*) ctx->command_list.items;
-      cmd->jump.dst = (char*) cnt->head + sizeof(mu_JumpCommand);
+      expect(cmd->type == MU_COMMAND_JUMP);
+      cmd->jump.dst_idx = cnt->head_idx + 1;
+      expect(cmd->jump.dst_idx < MU_COMMANDLIST_SIZE);
     } else {
       mu_Container *prev = ctx->root_list.items[i - 1];
-      prev->tail->jump.dst = (char*) cnt->head + sizeof(mu_JumpCommand);
+      ctx->command_list.items[prev->tail_idx].jump.dst_idx = cnt->head_idx + 1;
     }
     /* make the last container's tail jump to the end of command list */
     if (i == n - 1) {
-      cnt->tail->jump.dst = ctx->command_list.items + ctx->command_list.idx;
+      expect(cnt->tail_idx < MU_COMMANDLIST_SIZE);
+      expect(ctx->command_list.items[cnt->tail_idx].type == MU_COMMAND_JUMP);
+      ctx->command_list.items[cnt->tail_idx].jump.dst_idx = ctx->command_list.idx;
     }
   }
 }
@@ -322,6 +327,8 @@ static mu_Container* get_container(mu_Context *ctx, mu_Id id, int opt) {
   idx = mu_pool_init(ctx, ctx->container_pool, MU_CONTAINERPOOL_SIZE, id);
   cnt = &ctx->containers[idx];
   memset(cnt, 0, sizeof(*cnt));
+  cnt->head_idx = -1;
+  cnt->tail_idx = -1;
   cnt->open = 1;
   mu_bring_to_front(ctx, cnt);
   return cnt;
@@ -424,41 +431,50 @@ void mu_input_text(mu_Context *ctx, const char *text) {
 ** commandlist
 **============================================================================*/
 
-mu_Command* mu_push_command(mu_Context *ctx, int type, int size) {
-  mu_Command *cmd = (mu_Command*) (ctx->command_list.items + ctx->command_list.idx);
-  expect(ctx->command_list.idx + size < MU_COMMANDLIST_SIZE);
+mu_Command* mu_push_command(mu_Context *ctx, int type) {
+  mu_Command *cmd = &ctx->command_list.items[ctx->command_list.idx];
+  expect(ctx->command_list.idx < MU_COMMANDLIST_SIZE);
   cmd->base.type = type;
-  cmd->base.size = size;
-  ctx->command_list.idx += size;
+  ctx->command_list.idx += 1;
   return cmd;
 }
 
+char* mu_push_text(mu_Context* ctx, const char* str, size_t len) {
+    char* str_start = &ctx->text_stack.items[ctx->text_stack.idx];
+    expect(ctx->text_stack.idx + len + 1 < MU_CONTEXT_TEXT_SIZE);
+
+    memcpy(str_start, str, len);
+    str_start[len] = '\0';
+    ctx->text_stack.idx += len + 1;
+    return str_start;
+}
 
 int mu_next_command(mu_Context *ctx, mu_Command **cmd) {
   if (*cmd) {
-    *cmd = (mu_Command*) (((char*) *cmd) + (*cmd)->base.size);
+    *cmd = *cmd + 1;
   } else {
-    *cmd = (mu_Command*) ctx->command_list.items;
+    *cmd = ctx->command_list.items;
   }
-  while ((char*) *cmd != ctx->command_list.items + ctx->command_list.idx) {
+  while (*cmd != &ctx->command_list.items[ctx->command_list.idx]) {
     if ((*cmd)->type != MU_COMMAND_JUMP) { return 1; }
-    *cmd = (*cmd)->jump.dst;
+    *cmd = &ctx->command_list.items[(*cmd)->jump.dst_idx];
   }
   return 0;
 }
 
 
-static mu_Command* push_jump(mu_Context *ctx, mu_Command *dst) {
+static int push_jump(mu_Context *ctx, int dst_idx) {
   mu_Command *cmd;
-  cmd = mu_push_command(ctx, MU_COMMAND_JUMP, sizeof(mu_JumpCommand));
-  cmd->jump.dst = dst;
-  return cmd;
+  cmd = mu_push_command(ctx, MU_COMMAND_JUMP);
+  cmd->jump.dst_idx = dst_idx;
+  expect(cmd == &ctx->command_list.items[ctx->command_list.idx - 1]);
+  return ctx->command_list.idx - 1;
 }
 
 
 void mu_set_clip(mu_Context *ctx, mu_Rect rect) {
   mu_Command *cmd;
-  cmd = mu_push_command(ctx, MU_COMMAND_CLIP, sizeof(mu_ClipCommand));
+  cmd = mu_push_command(ctx, MU_COMMAND_CLIP);
   cmd->clip.rect = rect;
 }
 
@@ -467,7 +483,7 @@ void mu_draw_rect(mu_Context *ctx, mu_Rect rect, mu_Color color) {
   mu_Command *cmd;
   rect = intersect_rects(rect, mu_get_clip_rect(ctx));
   if (rect.w > 0 && rect.h > 0) {
-    cmd = mu_push_command(ctx, MU_COMMAND_RECT, sizeof(mu_RectCommand));
+    cmd = mu_push_command(ctx, MU_COMMAND_RECT);
     cmd->rect.rect = rect;
     cmd->rect.color = color;
   }
@@ -493,9 +509,9 @@ void mu_draw_text(mu_Context *ctx, mu_Font font, const char *str, int len,
   if (clipped == MU_CLIP_PART) { mu_set_clip(ctx, mu_get_clip_rect(ctx)); }
   /* add command */
   if (len < 0) { len = strlen(str); }
-  cmd = mu_push_command(ctx, MU_COMMAND_TEXT, sizeof(mu_TextCommand) + len);
-  memcpy(cmd->text.str, str, len);
-  cmd->text.str[len] = '\0';
+  char* str_start = mu_push_text(ctx, str, len);
+  cmd = mu_push_command(ctx, MU_COMMAND_TEXT);
+  cmd->text.str = str_start;
   cmd->text.pos = pos;
   cmd->text.color = color;
   cmd->text.font = font;
@@ -511,7 +527,7 @@ void mu_draw_icon(mu_Context *ctx, int id, mu_Rect rect, mu_Color color) {
   if (clipped == MU_CLIP_ALL ) { return; }
   if (clipped == MU_CLIP_PART) { mu_set_clip(ctx, mu_get_clip_rect(ctx)); }
   /* do icon command */
-  cmd = mu_push_command(ctx, MU_COMMAND_ICON, sizeof(mu_IconCommand));
+  cmd = mu_push_command(ctx, MU_COMMAND_ICON);
   cmd->icon.id = id;
   cmd->icon.rect = rect;
   cmd->icon.color = color;
@@ -634,7 +650,7 @@ static int in_hover_root(mu_Context *ctx) {
     if (ctx->container_stack.items[i] == ctx->hover_root) { return 1; }
     /* only root containers have their `head` field set; stop searching if we've
     ** reached the current root container */
-    if (ctx->container_stack.items[i]->head) { break; }
+    if (ctx->container_stack.items[i]->head_idx != -1) { break; }
   }
   return 0;
 }
@@ -984,7 +1000,6 @@ void mu_end_treenode(mu_Context *ctx) {
   mu_pop_id(ctx);
 }
 
-
 #define scrollbar(ctx, cnt, b, cs, x, y, w, h)                              \
   do {                                                                      \
     /* only add scrollbar if content size is larger than body */            \
@@ -1053,7 +1068,7 @@ static void begin_root_container(mu_Context *ctx, mu_Container *cnt) {
   push(ctx->container_stack, cnt);
   /* push container to roots list and push head command */
   push(ctx->root_list, cnt);
-  cnt->head = push_jump(ctx, NULL);
+  cnt->head_idx = push_jump(ctx, -1);
   /* set as hover root if the mouse is overlapping this container and it has a
   ** higher zindex than the current hover root */
   if (rect_overlaps_vec2(cnt->rect, ctx->mouse_pos) &&
@@ -1072,8 +1087,8 @@ static void end_root_container(mu_Context *ctx) {
   /* push tail 'goto' jump command and set head 'skip' command. the final steps
   ** on initing these are done in mu_end() */
   mu_Container *cnt = mu_get_current_container(ctx);
-  cnt->tail = push_jump(ctx, NULL);
-  cnt->head->jump.dst = ctx->command_list.items + ctx->command_list.idx;
+  cnt->tail_idx = push_jump(ctx, -1);
+  ctx->command_list.items[cnt->head_idx].jump.dst_idx = ctx->command_list.idx;
   /* pop base clip rect and container */
   mu_pop_clip_rect(ctx);
   pop_container(ctx);

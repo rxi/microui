@@ -10,7 +10,6 @@ else
     GLFLAG="-lGL"
 fi
 
-CFLAGS="-I../src -Wall -std=c11 -pedantic `sdl2-config --libs` $GLFLAG -lm -O3 -g"
+CFLAGS="-I../src -Wall -std=c11 -pedantic `sdl2-config --libs` $GLFLAG -lm -O0 -g"
 
-gcc main.c renderer.c ../src/microui.c $CFLAGS
-
+gcc -o demo main.c renderer.c ../src/microui.c $CFLAGS
