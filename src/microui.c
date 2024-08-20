@@ -425,6 +425,9 @@ void mu_input_text(mu_Context *ctx, const char *text) {
 **============================================================================*/
 
 mu_Command* mu_push_command(mu_Context *ctx, int type, int size) {
+  // Need to pad to the next multiple of 8 to respect alignment requirements.
+  size = (size+7) & -8;
+
   mu_Command *cmd = (mu_Command*) (ctx->command_list.items + ctx->command_list.idx);
   expect(ctx->command_list.idx + size < MU_COMMANDLIST_SIZE);
   cmd->base.type = type;
