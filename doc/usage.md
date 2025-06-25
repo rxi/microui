@@ -15,7 +15,7 @@ main loop:
   call `mu_begin()`
   process ui
   call `mu_end()`
-  iterate commands using `mu_command_next()`
+  iterate commands using `mu_next_command()`
 ```
 
 ## Getting Started
