@@ -1,5 +1,11 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#ifdef SDL3_RENDERER
+#  include <SDL3/SDL.h>
+#  include <SDL3/SDL_opengl.h>
+#else
+#  include <SDL2/SDL.h>
+#  include <SDL2/SDL_opengl.h>
+#endif
+
 #include <assert.h>
 #include "renderer.h"
 #include "atlas.inl"
@@ -19,10 +25,27 @@ static SDL_Window *window;
 
 
 void r_init(void) {
+  /* init SDL */
+  SDL_Init(
+#ifdef SDL3_RENDERER
+    0
+#else
+    SDL_INIT_EVERYTHING
+#endif
+  );
+
   /* init SDL window */
-  window = SDL_CreateWindow(
-    NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+  window = SDL_CreateWindow(NULL,
+#ifndef SDL3_RENDERER
+    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+#endif
     width, height, SDL_WINDOW_OPENGL);
+
+#ifdef SDL3_RENDERER
+  /* init SDL text input (for R_EV_TEXTINPUT event) */
+  SDL_StartTextInput(window);
+#endif
+
   SDL_GL_CreateContext(window);
 
   /* init gl */
@@ -147,6 +170,15 @@ void r_draw_icon(int id, mu_Rect rect, mu_Color color) {
   int x = rect.x + (rect.w - src.w) / 2;
   int y = rect.y + (rect.h - src.h) / 2;
   push_quad(mu_rect(x, y, src.w, src.h), src, color);
+}
+
+
+int r_get_event_key_modifier(r_Event event) {
+# ifdef SDL3_RENDERER
+    return r_key_map[event.key.scancode];
+# else
+    return r_key_map[event.key.keysym.sym & 0xff];
+# endif
 }
 
 
