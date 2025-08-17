@@ -473,6 +473,16 @@ void mu_draw_rect(mu_Context *ctx, mu_Rect rect, mu_Color color) {
   }
 }
 
+void mu_draw_image(mu_Context *ctx, mu_Rect rect, void* framebuffer) {
+  mu_Command *cmd;
+  rect = intersect_rects(rect, mu_get_clip_rect(ctx));
+  if (rect.w > 0 && rect.h > 0) {
+    cmd = mu_push_command(ctx, MU_COMMAND_IMAGE, sizeof(mu_ImageCommand));
+    cmd->image.rect = rect;
+    cmd->image.framebuffer = framebuffer;
+  }
+}
+
 
 void mu_draw_box(mu_Context *ctx, mu_Rect rect, mu_Color color) {
   mu_draw_rect(ctx, mu_rect(rect.x + 1, rect.y, rect.w - 2, 1), color);
