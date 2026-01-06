@@ -119,14 +119,13 @@ typedef struct { unsigned char r, g, b, a; } mu_Color;
 typedef struct { mu_Id id; int last_update; } mu_PoolItem;
 
 typedef struct { int type; } mu_BaseCommand;
-typedef struct { mu_BaseCommand base; mu_Command *dst; } mu_JumpCommand;
-typedef struct { mu_BaseCommand base; mu_Rect rect; } mu_ClipCommand;
-typedef struct { mu_BaseCommand base; mu_Rect rect; mu_Color color; } mu_RectCommand;
-typedef struct { mu_BaseCommand base; mu_Vec2 pos; mu_Color color; mu_Font font; char *str; } mu_TextCommand;
-typedef struct { mu_BaseCommand base; mu_Rect rect; int id; mu_Color color; } mu_IconCommand;
+typedef struct { int type; mu_Command *dst; } mu_JumpCommand;
+typedef struct { int type; mu_Rect rect; } mu_ClipCommand;
+typedef struct { int type; mu_Rect rect; mu_Color color; } mu_RectCommand;
+typedef struct { int type; mu_Vec2 pos; mu_Color color; mu_Font font; char *str; } mu_TextCommand;
+typedef struct { int type; mu_Rect rect; int id; mu_Color color; } mu_IconCommand;
 
 union mu_Command {
-  int type;
   mu_BaseCommand base;
   mu_JumpCommand jump;
   mu_ClipCommand clip;
