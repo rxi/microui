@@ -10,7 +10,8 @@
 
 #define MU_VERSION "2.02"
 
-#define MU_COMMANDLIST_SIZE     (256 * 1024)
+#define MU_COMMANDLIST_SIZE     (8 * 1024)
+#define MU_COMMANDTEXT_SIZE     (2048)
 #define MU_ROOTLIST_SIZE        32
 #define MU_CONTAINERSTACK_SIZE  32
 #define MU_CLIPSTACK_SIZE       32
@@ -107,6 +108,7 @@ enum {
 
 
 typedef struct mu_Context mu_Context;
+typedef union mu_Command mu_Command;
 typedef unsigned mu_Id;
 typedef MU_REAL mu_Real;
 typedef void* mu_Font;
@@ -116,14 +118,14 @@ typedef struct { int x, y, w, h; } mu_Rect;
 typedef struct { unsigned char r, g, b, a; } mu_Color;
 typedef struct { mu_Id id; int last_update; } mu_PoolItem;
 
-typedef struct { int type, size; } mu_BaseCommand;
-typedef struct { mu_BaseCommand base; void *dst; } mu_JumpCommand;
+typedef struct { int type; } mu_BaseCommand;
+typedef struct { mu_BaseCommand base; mu_Command *dst; } mu_JumpCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; } mu_ClipCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; mu_Color color; } mu_RectCommand;
-typedef struct { mu_BaseCommand base; mu_Font font; mu_Vec2 pos; mu_Color color; char str[1]; } mu_TextCommand;
+typedef struct { mu_BaseCommand base; mu_Vec2 pos; mu_Color color; mu_Font font; char *str; } mu_TextCommand;
 typedef struct { mu_BaseCommand base; mu_Rect rect; int id; mu_Color color; } mu_IconCommand;
 
-typedef union {
+union mu_Command {
   int type;
   mu_BaseCommand base;
   mu_JumpCommand jump;
@@ -131,7 +133,7 @@ typedef union {
   mu_RectCommand rect;
   mu_TextCommand text;
   mu_IconCommand icon;
-} mu_Command;
+};
 
 typedef struct {
   mu_Rect body;
@@ -190,7 +192,8 @@ struct mu_Context {
   char number_edit_buf[MU_MAX_FMT];
   mu_Id number_edit;
   /* stacks */
-  mu_stack(char, MU_COMMANDLIST_SIZE) command_list;
+  mu_stack(mu_Command, MU_COMMANDLIST_SIZE) command_list;
+  mu_stack(char, MU_COMMANDTEXT_SIZE) command_txt;
   mu_stack(mu_Container*, MU_ROOTLIST_SIZE) root_list;
   mu_stack(mu_Container*, MU_CONTAINERSTACK_SIZE) container_stack;
   mu_stack(mu_Rect, MU_CLIPSTACK_SIZE) clip_stack;

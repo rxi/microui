@@ -138,6 +138,7 @@ void mu_init(mu_Context *ctx) {
 void mu_begin(mu_Context *ctx) {
   expect(ctx->text_width && ctx->text_height);
   ctx->command_list.idx = 0;
+  ctx->command_txt.idx = 0;
   ctx->root_list.idx = 0;
   ctx->scroll_target = NULL;
   ctx->hover_root = ctx->next_hover_root;
@@ -196,11 +197,11 @@ void mu_end(mu_Context *ctx) {
     /* if this is the first container then make the first command jump to it.
     ** otherwise set the previous container's tail to jump to this one */
     if (i == 0) {
-      mu_Command *cmd = (mu_Command*) ctx->command_list.items;
-      cmd->jump.dst = (char*) cnt->head + sizeof(mu_JumpCommand);
+      mu_Command *cmd = ctx->command_list.items;
+      cmd->jump.dst = cnt->head + 1;
     } else {
       mu_Container *prev = ctx->root_list.items[i - 1];
-      prev->tail->jump.dst = (char*) cnt->head + sizeof(mu_JumpCommand);
+      prev->tail->jump.dst = cnt->head + 1;
     }
     /* make the last container's tail jump to the end of command list */
     if (i == n - 1) {
@@ -425,22 +426,22 @@ void mu_input_text(mu_Context *ctx, const char *text) {
 **============================================================================*/
 
 mu_Command* mu_push_command(mu_Context *ctx, int type, int size) {
-  mu_Command *cmd = (mu_Command*) (ctx->command_list.items + ctx->command_list.idx);
-  expect(ctx->command_list.idx + size < MU_COMMANDLIST_SIZE);
+  unused(size);
+  expect(ctx->command_list.idx < MU_COMMANDLIST_SIZE);
+  mu_Command *cmd = ctx->command_list.items + ctx->command_list.idx;
   cmd->base.type = type;
-  cmd->base.size = size;
-  ctx->command_list.idx += size;
+  ctx->command_list.idx += 1;
   return cmd;
 }
 
 
 int mu_next_command(mu_Context *ctx, mu_Command **cmd) {
   if (*cmd) {
-    *cmd = (mu_Command*) (((char*) *cmd) + (*cmd)->base.size);
+    *cmd += 1;
   } else {
-    *cmd = (mu_Command*) ctx->command_list.items;
+    *cmd = ctx->command_list.items;
   }
-  while ((char*) *cmd != ctx->command_list.items + ctx->command_list.idx) {
+  while (*cmd < (ctx->command_list.items + ctx->command_list.idx)) {
     if ((*cmd)->type != MU_COMMAND_JUMP) { return 1; }
     *cmd = (*cmd)->jump.dst;
   }
@@ -482,6 +483,16 @@ void mu_draw_box(mu_Context *ctx, mu_Rect rect, mu_Color color) {
 }
 
 
+static char *push_command_txt(mu_Context *ctx, const char *str, int len) {
+  expect(ctx->command_txt.idx + len + 1 < MU_COMMANDTEXT_SIZE);
+  char *str_dst = ctx->command_txt.items + ctx->command_txt.idx;
+  memcpy(str_dst, str, len);
+  str_dst[len] = '\0';
+  ctx->command_txt.idx += (len + 1);
+  return str_dst;
+}
+
+
 void mu_draw_text(mu_Context *ctx, mu_Font font, const char *str, int len,
   mu_Vec2 pos, mu_Color color)
 {
@@ -494,8 +505,7 @@ void mu_draw_text(mu_Context *ctx, mu_Font font, const char *str, int len,
   /* add command */
   if (len < 0) { len = strlen(str); }
   cmd = mu_push_command(ctx, MU_COMMAND_TEXT, sizeof(mu_TextCommand) + len);
-  memcpy(cmd->text.str, str, len);
-  cmd->text.str[len] = '\0';
+  cmd->text.str = push_command_txt(ctx, str, len);
   cmd->text.pos = pos;
   cmd->text.color = color;
   cmd->text.font = font;
